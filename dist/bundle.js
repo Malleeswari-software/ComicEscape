@@ -28424,10 +28424,10 @@ void main() {
       this.ctx = null;
       this.muted = false;
       this.musicMuted = false;
-      this.masterVolume = 0.85;
-      this.musicVolume = 0.45;
-      this.sfxVolume = 0.75;
-      this.ambienceVolume = 0.4;
+      this.masterVolume = 0.9;
+      this.musicVolume = 0.48;
+      this.sfxVolume = 0.85;
+      this.ambienceVolume = 0.45;
       this.masterNode = null;
       this.musicGain = null;
       this.sfxGain = null;
@@ -28436,11 +28436,12 @@ void main() {
       this.musicRunning = false;
       this.musicTimer = null;
       this.currentStep = 0;
-      this.tempo = 104;
+      this.tempo = 98;
       this.currentRoom = 1;
       this.ambienceNodes = [];
       this.padOscs = [];
       this.padGain = null;
+      this.noiseBuffer = null;
       this.attachAutoUnlock();
     }
     attachAutoUnlock() {
@@ -28456,9 +28457,7 @@ void main() {
     }
     init() {
       if (this.initialized && this.ctx) {
-        if (this.ctx.state === "suspended") {
-          this.ctx.resume();
-        }
+        if (this.ctx.state === "suspended") this.ctx.resume();
         return;
       }
       try {
@@ -28481,7 +28480,7 @@ void main() {
           this.ctx.resume();
         }
         this.startAmbience(this.currentRoom);
-        this.startPadDrone();
+        this.startMysticPadDrone();
       } catch (e) {
         console.warn("Web Audio context initialization error:", e);
       }
@@ -28493,6 +28492,22 @@ void main() {
       if (this.ctx && this.ctx.state === "suspended") {
         this.ctx.resume();
       }
+    }
+    getNoiseBuffer() {
+      if (this.noiseBuffer) return this.noiseBuffer;
+      if (!this.ctx) return null;
+      const bufferSize = this.ctx.sampleRate * 2.5;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      let lastOut = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        data[i] = (lastOut + 0.025 * white) / 1.025;
+        lastOut = data[i];
+        data[i] *= 3.8;
+      }
+      this.noiseBuffer = buffer;
+      return buffer;
     }
     setMasterVolume(val) {
       this.masterVolume = Math.max(0, Math.min(1, val));
@@ -28515,28 +28530,28 @@ void main() {
       if (!this.musicMuted) {
         this.ensureContext();
         if (!this.musicRunning) this.startBackgroundMusic();
-        this.playPuzzleSolved();
+        this.playMysticChime();
       }
       return !this.musicMuted;
     }
-    /* ---------------- CONTINUOUS AMBIENT PAD DRONE ---------------- */
-    startPadDrone() {
+    /* ---------------- MYSTIC PAD DRONE & SINGING BOWL HARMONICS ---------------- */
+    startMysticPadDrone() {
       if (!this.ctx || this.padGain) return;
       try {
         const t = this.ctx.currentTime;
         this.padGain = this.ctx.createGain();
-        this.padGain.gain.setValueAtTime(0.2, t);
+        this.padGain.gain.setValueAtTime(0.24, t);
         this.padGain.connect(this.ambienceGain);
-        const freqs = [110, 164.81, 261.63];
+        const freqs = [110, 164.81, 261.63, 293.66];
         this.padOscs = freqs.map((f, idx) => {
           const osc = this.ctx.createOscillator();
           const filter = this.ctx.createBiquadFilter();
           const g = this.ctx.createGain();
-          osc.type = idx === 0 ? "sawtooth" : "triangle";
-          osc.frequency.setValueAtTime(f, t);
+          osc.type = idx % 2 === 0 ? "sawtooth" : "triangle";
+          osc.frequency.setValueAtTime(f + (Math.random() - 0.5) * 1.2, t);
           filter.type = "lowpass";
-          filter.frequency.setValueAtTime(320, t);
-          g.gain.setValueAtTime(0.12, t);
+          filter.frequency.setValueAtTime(340, t);
+          g.gain.setValueAtTime(0.14, t);
           osc.connect(filter);
           filter.connect(g);
           g.connect(this.padGain);
@@ -28544,7 +28559,7 @@ void main() {
           return osc;
         });
       } catch (e) {
-        console.warn("Pad drone error:", e);
+        console.warn("Mystic pad drone error:", e);
       }
     }
     /* ---------------- ENVIRONMENTAL AMBIENCE ---------------- */
@@ -28562,21 +28577,21 @@ void main() {
           droneOsc.type = "triangle";
           droneOsc.frequency.setValueAtTime(55, t);
           filter.type = "lowpass";
-          filter.frequency.setValueAtTime(240, t);
+          filter.frequency.setValueAtTime(220, t);
         } else if (roomNumber === 2) {
           droneOsc.type = "sine";
           droneOsc.frequency.setValueAtTime(110, t);
           filter.type = "bandpass";
-          filter.frequency.setValueAtTime(440, t);
-          filter.Q.setValueAtTime(2.5, t);
+          filter.frequency.setValueAtTime(432, t);
+          filter.Q.setValueAtTime(3, t);
         } else {
           droneOsc.type = "sawtooth";
-          droneOsc.frequency.setValueAtTime(43.65, t);
+          droneOsc.frequency.setValueAtTime(41.2, t);
           filter.type = "lowpass";
-          filter.frequency.setValueAtTime(140, t);
+          filter.frequency.setValueAtTime(130, t);
         }
         droneGain.gain.setValueAtTime(0.01, t);
-        droneGain.gain.linearRampToValueAtTime(0.24, t + 1.5);
+        droneGain.gain.linearRampToValueAtTime(0.26, t + 1.5);
         droneOsc.connect(filter);
         filter.connect(droneGain);
         droneGain.connect(this.ambienceGain);
@@ -28596,7 +28611,7 @@ void main() {
       }
       this.ambienceNodes = [];
     }
-    /* ---------------- CONTINUOUS MYSTERY SOUNDTRACK ---------------- */
+    /* ---------------- CONTINUOUS MYSTICAL SOUNDTRACK ---------------- */
     startBackgroundMusic() {
       this.ensureContext();
       if (!this.ctx) return;
@@ -28608,14 +28623,14 @@ void main() {
       this.musicRunning = true;
       this.currentStep = 0;
       const chordProgressions = [
-        { bass: 55, chords: [220, 261.63, 329.63, 493.88] },
-        // Am9
-        { bass: 43.65, chords: [174.61, 220, 261.63, 329.63] },
-        // Fmaj7
-        { bass: 73.42, chords: [146.83, 174.61, 220, 261.63] },
-        // Dm7
-        { bass: 82.41, chords: [164.81, 196, 246.94, 329.63] }
-        // Em7
+        { bass: 55, chords: [220, 261.63, 329.63, 493.88, 528] },
+        // Am9 (with 528Hz Solfeggio)
+        { bass: 43.65, chords: [174.61, 220, 261.63, 329.63, 493.88] },
+        // Fmaj7#11
+        { bass: 73.42, chords: [146.83, 174.61, 220, 261.63, 392] },
+        // Dm9
+        { bass: 82.41, chords: [164.81, 220, 246.94, 329.63, 440] }
+        // Esus4
       ];
       const stepDuration = 60 / this.tempo / 2;
       const scheduleStep = () => {
@@ -28625,11 +28640,11 @@ void main() {
         const stepInBar = this.currentStep % 8;
         const harmony = chordProgressions[bar];
         if (stepInBar === 0 || stepInBar === 4) {
-          this.playBassNote(harmony.bass, t, stepDuration * 3.6);
+          this.playBassNote(harmony.bass, t, stepDuration * 3.8);
         }
-        const noteIndex = [0, 1, 2, 3, 2, 1, 3, 0][stepInBar];
+        const noteIndex = [0, 2, 1, 3, 4, 2, 3, 1][stepInBar];
         const freq = harmony.chords[noteIndex];
-        this.playArpNote(freq, t, stepDuration * 2);
+        this.playArpNote(freq, t, stepDuration * 2.2);
         if (stepInBar === 0 || stepInBar === 2) {
           this.playSubPulse(t);
         }
@@ -28655,9 +28670,9 @@ void main() {
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(freq, time);
         filter.type = "lowpass";
-        filter.frequency.setValueAtTime(160, time);
-        filter.frequency.exponentialRampToValueAtTime(70, time + duration);
-        gain.gain.setValueAtTime(0.38, time);
+        filter.frequency.setValueAtTime(170, time);
+        filter.frequency.exponentialRampToValueAtTime(65, time + duration);
+        gain.gain.setValueAtTime(0.42, time);
         gain.gain.exponentialRampToValueAtTime(1e-3, time + duration);
         osc.connect(filter);
         filter.connect(gain);
@@ -28676,8 +28691,8 @@ void main() {
         osc.type = "sine";
         osc.frequency.setValueAtTime(freq, time);
         filter.type = "lowpass";
-        filter.frequency.setValueAtTime(1200, time);
-        gain.gain.setValueAtTime(0.24, time);
+        filter.frequency.setValueAtTime(1600, time);
+        gain.gain.setValueAtTime(0.28, time);
         gain.gain.exponentialRampToValueAtTime(1e-3, time + duration);
         osc.connect(filter);
         filter.connect(gain);
@@ -28693,18 +28708,418 @@ void main() {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(50, time);
-        osc.frequency.exponentialRampToValueAtTime(30, time + 0.3);
-        gain.gain.setValueAtTime(0.22, time);
-        gain.gain.exponentialRampToValueAtTime(1e-3, time + 0.3);
+        osc.frequency.setValueAtTime(48, time);
+        osc.frequency.exponentialRampToValueAtTime(26, time + 0.35);
+        gain.gain.setValueAtTime(0.26, time);
+        gain.gain.exponentialRampToValueAtTime(1e-3, time + 0.35);
         osc.connect(gain);
         gain.connect(this.musicGain);
         osc.start(time);
-        osc.stop(time + 0.3);
+        osc.stop(time + 0.35);
       } catch (e) {
       }
     }
-    /* ---------------- SOUND EFFECTS ---------------- */
+    /* ---------------- REALISTIC STONE MOVING & GRINDING ---------------- */
+    playStoneGrinding(duration = 2, pitchScale = 1, volumeScale = 1) {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const noiseBuf = this.getNoiseBuffer();
+        if (noiseBuf) {
+          const lowSrc = this.ctx.createBufferSource();
+          lowSrc.buffer = noiseBuf;
+          lowSrc.loop = true;
+          const lowFilter = this.ctx.createBiquadFilter();
+          lowFilter.type = "bandpass";
+          lowFilter.frequency.setValueAtTime(240 * pitchScale, t);
+          lowFilter.frequency.linearRampToValueAtTime(460 * pitchScale, t + duration * 0.45);
+          lowFilter.frequency.linearRampToValueAtTime(200 * pitchScale, t + duration);
+          lowFilter.Q.setValueAtTime(3.8, t);
+          const lowGain = this.ctx.createGain();
+          lowGain.gain.setValueAtTime(0.01, t);
+          lowGain.gain.linearRampToValueAtTime(0.55 * volumeScale, t + 0.12);
+          lowGain.gain.setValueAtTime(0.5 * volumeScale, t + duration - 0.25);
+          lowGain.gain.exponentialRampToValueAtTime(1e-3, t + duration);
+          lowSrc.connect(lowFilter);
+          lowFilter.connect(lowGain);
+          lowGain.connect(this.sfxGain);
+          lowSrc.start(t);
+          lowSrc.stop(t + duration);
+          const highSrc = this.ctx.createBufferSource();
+          highSrc.buffer = noiseBuf;
+          highSrc.loop = true;
+          const highFilter = this.ctx.createBiquadFilter();
+          highFilter.type = "bandpass";
+          highFilter.frequency.setValueAtTime(700 * pitchScale, t);
+          highFilter.frequency.linearRampToValueAtTime(1100 * pitchScale, t + duration * 0.6);
+          highFilter.frequency.linearRampToValueAtTime(550 * pitchScale, t + duration);
+          highFilter.Q.setValueAtTime(5.2, t);
+          const highGain = this.ctx.createGain();
+          highGain.gain.setValueAtTime(0.01, t);
+          highGain.gain.linearRampToValueAtTime(0.38 * volumeScale, t + 0.18);
+          highGain.gain.setValueAtTime(0.32 * volumeScale, t + duration - 0.2);
+          highGain.gain.exponentialRampToValueAtTime(1e-3, t + duration);
+          highSrc.connect(highFilter);
+          highFilter.connect(highGain);
+          highGain.connect(this.sfxGain);
+          highSrc.start(t);
+          highSrc.stop(t + duration);
+          const clickCount = Math.floor(duration * 6);
+          for (let i = 0; i < clickCount; i++) {
+            const clickTime = t + 0.08 + Math.random() * (duration - 0.2);
+            const cSrc = this.ctx.createBufferSource();
+            cSrc.buffer = noiseBuf;
+            const cFilter = this.ctx.createBiquadFilter();
+            cFilter.type = "bandpass";
+            cFilter.frequency.setValueAtTime((800 + Math.random() * 1200) * pitchScale, clickTime);
+            cFilter.Q.setValueAtTime(7, clickTime);
+            const cGain = this.ctx.createGain();
+            cGain.gain.setValueAtTime(0.3 * volumeScale, clickTime);
+            cGain.gain.exponentialRampToValueAtTime(1e-3, clickTime + 0.04);
+            cSrc.connect(cFilter);
+            cFilter.connect(cGain);
+            cGain.connect(this.sfxGain);
+            cSrc.start(clickTime);
+            cSrc.stop(clickTime + 0.05);
+          }
+        }
+        const subOsc = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+        subOsc.type = "sawtooth";
+        subOsc.frequency.setValueAtTime(46 * pitchScale, t);
+        subOsc.frequency.linearRampToValueAtTime(28 * pitchScale, t + duration);
+        const subFilter = this.ctx.createBiquadFilter();
+        subFilter.type = "lowpass";
+        subFilter.frequency.setValueAtTime(115, t);
+        subGain.gain.setValueAtTime(0.01, t);
+        subGain.gain.linearRampToValueAtTime(0.5 * volumeScale, t + 0.15);
+        subGain.gain.linearRampToValueAtTime(0.42 * volumeScale, t + duration - 0.2);
+        subGain.gain.exponentialRampToValueAtTime(1e-3, t + duration);
+        subOsc.connect(subFilter);
+        subFilter.connect(subGain);
+        subGain.connect(this.sfxGain);
+        subOsc.start(t);
+        subOsc.stop(t + duration);
+        const impactTime = t + duration;
+        const thudOsc = this.ctx.createOscillator();
+        const thudGain = this.ctx.createGain();
+        thudOsc.type = "triangle";
+        thudOsc.frequency.setValueAtTime(125 * pitchScale, impactTime);
+        thudOsc.frequency.exponentialRampToValueAtTime(24 * pitchScale, impactTime + 0.42);
+        thudGain.gain.setValueAtTime(0.75 * volumeScale, impactTime);
+        thudGain.gain.exponentialRampToValueAtTime(1e-3, impactTime + 0.42);
+        thudOsc.connect(thudGain);
+        thudGain.connect(this.sfxGain);
+        thudOsc.start(impactTime);
+        thudOsc.stop(impactTime + 0.42);
+      } catch (e) {
+        console.warn("Stone grinding sound error:", e);
+      }
+    }
+    /* ---------------- HEAVY STONE SLAB SLIDE ---------------- */
+    playStoneSlabSlide(duration = 1.8) {
+      this.playStoneGrinding(duration, 0.82, 1.15);
+    }
+    /* ---------------- DULL IMMOVABLE STONE CLUNK (LOCKED MECHANISM) ---------------- */
+    playStoneLocked() {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const thudOsc = this.ctx.createOscillator();
+        const thudGain = this.ctx.createGain();
+        thudOsc.type = "triangle";
+        thudOsc.frequency.setValueAtTime(85, t);
+        thudOsc.frequency.exponentialRampToValueAtTime(28, t + 0.25);
+        thudGain.gain.setValueAtTime(0.65, t);
+        thudGain.gain.exponentialRampToValueAtTime(1e-3, t + 0.25);
+        thudOsc.connect(thudGain);
+        thudGain.connect(this.sfxGain);
+        thudOsc.start(t);
+        thudOsc.stop(t + 0.25);
+        [0, 0.04].forEach((off) => {
+          const rattleOsc = this.ctx.createOscillator();
+          const rGain = this.ctx.createGain();
+          rattleOsc.type = "square";
+          rattleOsc.frequency.setValueAtTime(420 + off * 200, t + off);
+          rGain.gain.setValueAtTime(0.25, t + off);
+          rGain.gain.exponentialRampToValueAtTime(1e-3, t + off + 0.05);
+          rattleOsc.connect(rGain);
+          rGain.connect(this.sfxGain);
+          rattleOsc.start(t + off);
+          rattleOsc.stop(t + off + 0.05);
+        });
+      } catch (e) {
+      }
+    }
+    /* ---------------- VIOLENT STRUCTURAL WALL CRACKING ---------------- */
+    playWallCracking() {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        [0, 0.06, 0.14, 0.24, 0.42].forEach((offset, idx) => {
+          const snapTime = t + offset;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(1600 + idx * 480, snapTime);
+          osc.frequency.exponentialRampToValueAtTime(180, snapTime + 0.055);
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(2100, snapTime);
+          filter.Q.setValueAtTime(4.8, snapTime);
+          gain.gain.setValueAtTime(0.72, snapTime);
+          gain.gain.exponentialRampToValueAtTime(1e-3, snapTime + 0.06);
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(snapTime);
+          osc.stop(snapTime + 0.06);
+        });
+        const fissureOsc = this.ctx.createOscillator();
+        const fissureGain = this.ctx.createGain();
+        fissureOsc.type = "sawtooth";
+        fissureOsc.frequency.setValueAtTime(160, t + 0.04);
+        fissureOsc.frequency.exponentialRampToValueAtTime(22, t + 1.9);
+        const fissureFilter = this.ctx.createBiquadFilter();
+        fissureFilter.type = "lowpass";
+        fissureFilter.frequency.setValueAtTime(140, t + 0.04);
+        fissureGain.gain.setValueAtTime(0.85, t + 0.04);
+        fissureGain.gain.exponentialRampToValueAtTime(1e-3, t + 2);
+        fissureOsc.connect(fissureFilter);
+        fissureFilter.connect(fissureGain);
+        fissureGain.connect(this.sfxGain);
+        fissureOsc.start(t + 0.04);
+        fissureOsc.stop(t + 2);
+        const noiseBuf = this.getNoiseBuffer();
+        if (noiseBuf) {
+          for (let i = 0; i < 11; i++) {
+            const pebbleTime = t + 0.18 + Math.random() * 1.3;
+            const noiseSrc = this.ctx.createBufferSource();
+            noiseSrc.buffer = noiseBuf;
+            const bp = this.ctx.createBiquadFilter();
+            bp.type = "bandpass";
+            bp.frequency.setValueAtTime(600 + Math.random() * 1200, pebbleTime);
+            bp.Q.setValueAtTime(6.5, pebbleTime);
+            const pg = this.ctx.createGain();
+            pg.gain.setValueAtTime(0.38, pebbleTime);
+            pg.gain.exponentialRampToValueAtTime(1e-3, pebbleTime + 0.07);
+            noiseSrc.connect(bp);
+            bp.connect(pg);
+            pg.connect(this.sfxGain);
+            noiseSrc.start(pebbleTime);
+            noiseSrc.stop(pebbleTime + 0.08);
+          }
+        }
+      } catch (e) {
+        console.warn("Wall cracking sound error:", e);
+      }
+    }
+    /* ---------------- AUTHENTIC METALLIC KEY PICKUP (BRASS, SILVER, OBSIDIAN) ---------------- */
+    playKeyPickup(keyType = "brass") {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        [0, 0.026, 0.054].forEach((offset, idx) => {
+          const jingleOsc = this.ctx.createOscillator();
+          const jingleGain = this.ctx.createGain();
+          jingleOsc.type = "square";
+          jingleOsc.frequency.setValueAtTime(1800 + idx * 420, t + offset);
+          jingleOsc.frequency.exponentialRampToValueAtTime(450, t + offset + 0.04);
+          jingleGain.gain.setValueAtTime(0.38, t + offset);
+          jingleGain.gain.exponentialRampToValueAtTime(1e-3, t + offset + 0.04);
+          jingleOsc.connect(jingleGain);
+          jingleGain.connect(this.sfxGain);
+          jingleOsc.start(t + offset);
+          jingleOsc.stop(t + offset + 0.04);
+        });
+        if (keyType === "brass") {
+          const partials = [
+            { f: 392, g: 0.42, d: 1.6 },
+            { f: 784, g: 0.36, d: 1.2 },
+            { f: 1175, g: 0.28, d: 0.9 },
+            { f: 1960, g: 0.2, d: 0.6 },
+            { f: 3136, g: 0.15, d: 0.4 }
+          ];
+          partials.forEach((p) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(p.f, t + 0.05);
+            gain.gain.setValueAtTime(p.g, t + 0.05);
+            gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.05 + p.d);
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            osc.start(t + 0.05);
+            osc.stop(t + 0.05 + p.d);
+          });
+        } else if (keyType === "silver") {
+          const partials = [
+            { f: 528, g: 0.3, d: 2.4 },
+            // Solfeggio 528Hz sub-resonance
+            { f: 880, g: 0.4, d: 2.2 },
+            { f: 1760, g: 0.35, d: 1.7 },
+            { f: 2640, g: 0.26, d: 1.2 },
+            { f: 3520, g: 0.2, d: 0.9 },
+            { f: 5280, g: 0.14, d: 0.6 }
+          ];
+          partials.forEach((p) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(p.f, t + 0.05);
+            gain.gain.setValueAtTime(p.g, t + 0.05);
+            gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.05 + p.d);
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            osc.start(t + 0.05);
+            osc.stop(t + 0.05 + p.d);
+          });
+        } else {
+          const mineralSnap = this.ctx.createOscillator();
+          const snapGain = this.ctx.createGain();
+          mineralSnap.type = "triangle";
+          mineralSnap.frequency.setValueAtTime(2400, t + 0.05);
+          mineralSnap.frequency.exponentialRampToValueAtTime(500, t + 0.09);
+          snapGain.gain.setValueAtTime(0.55, t + 0.05);
+          snapGain.gain.exponentialRampToValueAtTime(1e-3, t + 0.09);
+          mineralSnap.connect(snapGain);
+          snapGain.connect(this.sfxGain);
+          mineralSnap.start(t + 0.05);
+          mineralSnap.stop(t + 0.09);
+          const partials = [
+            { f: 136.1, g: 0.55, d: 3.2 },
+            // Sacred Om frequency
+            { f: 272.2, g: 0.42, d: 2.6 },
+            { f: 408.3, g: 0.32, d: 2 },
+            { f: 544.4, g: 0.24, d: 1.4 },
+            { f: 816.6, g: 0.16, d: 0.9 }
+          ];
+          partials.forEach((p) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(p.f, t + 0.06);
+            gain.gain.setValueAtTime(p.g, t + 0.06);
+            gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.06 + p.d);
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            osc.start(t + 0.06);
+            osc.stop(t + 0.06 + p.d);
+          });
+        }
+      } catch (e) {
+        console.warn("Key pickup sound error:", e);
+      }
+    }
+    /* ---------------- METALLIC KEY JINGLE (HUD / INVENTORY TOUCH) ---------------- */
+    playKeyJingle() {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        [0, 0.03, 0.07].forEach((offset, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(2200 + idx * 450, t + offset);
+          gain.gain.setValueAtTime(0.24, t + offset);
+          gain.gain.exponentialRampToValueAtTime(1e-3, t + offset + 0.04);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(t + offset);
+          osc.stop(t + offset + 0.04);
+        });
+      } catch (e) {
+      }
+    }
+    /* ---------------- TIBETAN SINGING BOWL (ACOUSTIC BEATING TREMOLO) ---------------- */
+    playSingingBowl(baseFreq = 528, duration = 4.5) {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        [baseFreq, baseFreq + 1.8].forEach((f) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, t);
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.exponentialRampToValueAtTime(1e-3, t + duration);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(t);
+          osc.stop(t + duration);
+        });
+        [baseFreq * 2.76, baseFreq * 5.4].forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, t);
+          gain.gain.setValueAtTime(0.12 / (idx + 1), t);
+          gain.gain.exponentialRampToValueAtTime(1e-3, t + duration * 0.7);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(t);
+          osc.stop(t + duration * 0.7);
+        });
+      } catch (e) {
+      }
+    }
+    /* ---------------- MYSTIC CHIME & ARCANE WHISPER ---------------- */
+    playMysticChime() {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const harmonics = [528, 1056, 1584, 2112];
+        harmonics.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, t);
+          const amp = 0.3 / (idx + 1);
+          gain.gain.setValueAtTime(amp, t);
+          gain.gain.exponentialRampToValueAtTime(1e-3, t + 3);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(t);
+          osc.stop(t + 3);
+        });
+      } catch (e) {
+      }
+    }
+    playMysticWhisper() {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const noiseBuf = this.getNoiseBuffer();
+        if (!noiseBuf) return;
+        const src = this.ctx.createBufferSource();
+        src.buffer = noiseBuf;
+        const bp = this.ctx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.setValueAtTime(750, t);
+        bp.frequency.linearRampToValueAtTime(1450, t + 0.8);
+        bp.frequency.linearRampToValueAtTime(800, t + 1.8);
+        bp.Q.setValueAtTime(4.5, t);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.01, t);
+        gain.gain.linearRampToValueAtTime(0.35, t + 0.7);
+        gain.gain.exponentialRampToValueAtTime(1e-3, t + 1.9);
+        src.connect(bp);
+        bp.connect(gain);
+        gain.connect(this.sfxGain);
+        src.start(t);
+        src.stop(t + 1.9);
+      } catch (e) {
+      }
+    }
+    /* ---------------- INTERACTIVE PUZZLE SOUNDS ---------------- */
     playFootstep() {
       this.ensureContext();
       if (!this.ctx) return;
@@ -28714,17 +29129,34 @@ void main() {
         const gain = this.ctx.createGain();
         const filter = this.ctx.createBiquadFilter();
         osc.type = "triangle";
-        osc.frequency.setValueAtTime(110 + Math.random() * 40, t);
-        osc.frequency.exponentialRampToValueAtTime(40, t + 0.08);
+        osc.frequency.setValueAtTime(140 + Math.random() * 50, t);
+        osc.frequency.exponentialRampToValueAtTime(35, t + 0.09);
         filter.type = "lowpass";
-        filter.frequency.setValueAtTime(300, t);
-        gain.gain.setValueAtTime(0.18, t);
-        gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.08);
+        filter.frequency.setValueAtTime(320, t);
+        gain.gain.setValueAtTime(0.24, t);
+        gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.09);
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.sfxGain);
         osc.start(t);
-        osc.stop(t + 0.08);
+        osc.stop(t + 0.09);
+        const noiseBuf = this.getNoiseBuffer();
+        if (noiseBuf) {
+          const nSrc = this.ctx.createBufferSource();
+          nSrc.buffer = noiseBuf;
+          const bp = this.ctx.createBiquadFilter();
+          bp.type = "bandpass";
+          bp.frequency.setValueAtTime(800 + Math.random() * 400, t);
+          bp.Q.setValueAtTime(5, t);
+          const ng = this.ctx.createGain();
+          ng.gain.setValueAtTime(0.09, t);
+          ng.gain.exponentialRampToValueAtTime(1e-3, t + 0.07);
+          nSrc.connect(bp);
+          bp.connect(ng);
+          ng.connect(this.sfxGain);
+          nSrc.start(t);
+          nSrc.stop(t + 0.07);
+        }
       } catch (e) {
       }
     }
@@ -28762,12 +29194,13 @@ void main() {
           osc.type = "sine";
           osc.frequency.setValueAtTime(650, t);
           osc.frequency.exponentialRampToValueAtTime(1500, t + 0.18);
+          this.playMysticWhisper();
         } else if (mode === "laser") {
           osc.type = "sawtooth";
           osc.frequency.setValueAtTime(220, t);
           osc.frequency.exponentialRampToValueAtTime(2e3, t + 0.2);
         }
-        gain.gain.setValueAtTime(0.28, t);
+        gain.gain.setValueAtTime(0.32, t);
         gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.2);
         osc.connect(gain);
         gain.connect(this.sfxGain);
@@ -28781,21 +29214,23 @@ void main() {
       if (!this.ctx) return;
       try {
         const t = this.ctx.currentTime;
+        this.playStoneGrinding(0.45, 1.4, 0.45);
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         const filter = this.ctx.createBiquadFilter();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(360, t);
-        osc.frequency.exponentialRampToValueAtTime(190, t + 0.16);
+        osc.frequency.setValueAtTime(320, t);
+        osc.frequency.exponentialRampToValueAtTime(150, t + 0.18);
         filter.type = "lowpass";
         filter.frequency.setValueAtTime(450, t);
-        gain.gain.setValueAtTime(0.35, t);
-        gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.16);
+        gain.gain.setValueAtTime(0.42, t);
+        gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.18);
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.sfxGain);
         osc.start(t);
-        osc.stop(t + 0.16);
+        osc.stop(t + 0.18);
+        this.playMysticWhisper();
       } catch (e) {
       }
     }
@@ -28804,18 +29239,20 @@ void main() {
       if (!this.ctx) return;
       try {
         const t = this.ctx.currentTime;
-        [0, 0.04, 0.08, 0.12].forEach((offset, idx) => {
+        this.playStoneGrinding(0.55, 1.1, 0.55);
+        [0, 0.05, 0.11, 0.18].forEach((offset, idx) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "square";
-          osc.frequency.setValueAtTime(450 + idx * 90, t + offset);
-          gain.gain.setValueAtTime(0.22, t + offset);
-          gain.gain.exponentialRampToValueAtTime(1e-3, t + offset + 0.035);
+          osc.frequency.setValueAtTime(520 + idx * 140, t + offset);
+          gain.gain.setValueAtTime(0.26, t + offset);
+          gain.gain.exponentialRampToValueAtTime(1e-3, t + offset + 0.04);
           osc.connect(gain);
           gain.connect(this.sfxGain);
           osc.start(t + offset);
-          osc.stop(t + offset + 0.035);
+          osc.stop(t + offset + 0.04);
         });
+        this.playSingingBowl(880, 1.8);
       } catch (e) {
       }
     }
@@ -28827,14 +29264,14 @@ void main() {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(1300, t);
-        osc.frequency.exponentialRampToValueAtTime(850, t + 0.12);
-        gain.gain.setValueAtTime(0.22, t);
-        gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.12);
+        osc.frequency.setValueAtTime(1500, t);
+        osc.frequency.exponentialRampToValueAtTime(900, t + 0.14);
+        gain.gain.setValueAtTime(0.25, t);
+        gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.14);
         osc.connect(gain);
         gain.connect(this.sfxGain);
         osc.start(t);
-        osc.stop(t + 0.12);
+        osc.stop(t + 0.14);
       } catch (e) {
       }
     }
@@ -28843,86 +29280,64 @@ void main() {
       if (!this.ctx) return;
       try {
         const t = this.ctx.currentTime;
+        this.playStoneGrinding(0.7, 0.85, 0.65);
         const osc = this.ctx.createOscillator();
         const filter = this.ctx.createBiquadFilter();
         const gain = this.ctx.createGain();
         osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(95, t);
-        osc.frequency.exponentialRampToValueAtTime(180, t + 0.22);
+        osc.frequency.setValueAtTime(85, t);
+        osc.frequency.exponentialRampToValueAtTime(260, t + 0.35);
         filter.type = "lowpass";
-        filter.frequency.setValueAtTime(280, t);
-        gain.gain.setValueAtTime(0.32, t);
-        gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.22);
+        filter.frequency.setValueAtTime(380, t);
+        gain.gain.setValueAtTime(0.4, t);
+        gain.gain.exponentialRampToValueAtTime(1e-3, t + 0.35);
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.sfxGain);
         osc.start(t);
-        osc.stop(t + 0.22);
+        osc.stop(t + 0.35);
+      } catch (e) {
+      }
+    }
+    playChamberTransition(roomNumber) {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        this.playMysticWhisper();
+        if (roomNumber === 2) {
+          this.playSingingBowl(432, 3.5);
+        } else if (roomNumber === 3) {
+          this.playKeyPickup("obsidian");
+          this.playWallCracking();
+        } else {
+          this.playMysticChime();
+        }
       } catch (e) {
       }
     }
     playDoorSlide() {
-      this.ensureContext();
-      if (!this.ctx) return;
-      try {
-        const t = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const filter = this.ctx.createBiquadFilter();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(70, t);
-        osc.frequency.linearRampToValueAtTime(45, t + 1.4);
-        filter.type = "lowpass";
-        filter.frequency.setValueAtTime(180, t);
-        gain.gain.setValueAtTime(0.42, t);
-        gain.gain.linearRampToValueAtTime(1e-3, t + 1.4);
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.sfxGain);
-        osc.start(t);
-        osc.stop(t + 1.4);
-      } catch (e) {
-      }
+      this.playStoneGrinding(1.8);
+      this.playWallCracking();
     }
     playPuzzleSolved() {
       this.ensureContext();
       if (!this.ctx) return;
       try {
         const t = this.ctx.currentTime;
-        const notes = [261.63, 329.63, 392, 523.25];
+        const notes = [396, 417, 528, 639];
         notes.forEach((freq, idx) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "sine";
-          osc.frequency.setValueAtTime(freq, t + idx * 0.08);
-          gain.gain.setValueAtTime(0.28, t + idx * 0.08);
-          gain.gain.exponentialRampToValueAtTime(1e-3, t + idx * 0.08 + 0.9);
+          osc.frequency.setValueAtTime(freq, t + idx * 0.1);
+          gain.gain.setValueAtTime(0.35, t + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(1e-3, t + idx * 0.1 + 1.2);
           osc.connect(gain);
           gain.connect(this.sfxGain);
-          osc.start(t + idx * 0.08);
-          osc.stop(t + idx * 0.08 + 0.9);
+          osc.start(t + idx * 0.1);
+          osc.stop(t + idx * 0.1 + 1.2);
         });
-      } catch (e) {
-      }
-    }
-    playKeyPickup() {
-      this.ensureContext();
-      if (!this.ctx) return;
-      try {
-        const t = this.ctx.currentTime;
-        const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51];
-        notes.forEach((freq, idx) => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = "triangle";
-          osc.frequency.setValueAtTime(freq, t + idx * 0.09);
-          gain.gain.setValueAtTime(0.32, t + idx * 0.09);
-          gain.gain.exponentialRampToValueAtTime(1e-3, t + idx * 0.09 + 0.8);
-          osc.connect(gain);
-          gain.connect(this.sfxGain);
-          osc.start(t + idx * 0.09);
-          osc.stop(t + idx * 0.09 + 0.8);
-        });
+        this.playMysticWhisper();
       } catch (e) {
       }
     }
@@ -28931,53 +29346,32 @@ void main() {
       this.ensureContext();
       if (!this.ctx) return;
       try {
+        this.playWallCracking();
+        this.playStoneGrinding(3.5);
         const t = this.ctx.currentTime;
-        const subOsc = this.ctx.createOscillator();
-        const subGain = this.ctx.createGain();
-        subOsc.type = "sine";
-        subOsc.frequency.setValueAtTime(140, t);
-        subOsc.frequency.exponentialRampToValueAtTime(28, t + 1.8);
-        subGain.gain.setValueAtTime(0.6, t);
-        subGain.gain.exponentialRampToValueAtTime(1e-3, t + 2.2);
-        subOsc.connect(subGain);
-        subGain.connect(this.sfxGain);
-        subOsc.start(t);
-        subOsc.stop(t + 2.2);
-        const riseOsc = this.ctx.createOscillator();
-        const riseGain = this.ctx.createGain();
-        riseOsc.type = "sawtooth";
-        riseOsc.frequency.setValueAtTime(180, t + 0.3);
-        riseOsc.frequency.exponentialRampToValueAtTime(880, t + 2);
-        riseGain.gain.setValueAtTime(0.01, t + 0.3);
-        riseGain.gain.linearRampToValueAtTime(0.35, t + 1.8);
-        riseGain.gain.exponentialRampToValueAtTime(1e-3, t + 2.4);
-        riseOsc.connect(riseGain);
-        riseGain.connect(this.sfxGain);
-        riseOsc.start(t + 0.3);
-        riseOsc.stop(t + 2.4);
-        [2, 2.2, 2.4].forEach((timeOffset, idx) => {
+        [0.8, 1.1, 1.4].forEach((timeOffset, idx) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "square";
-          osc.frequency.setValueAtTime(400 + idx * 250, t + timeOffset);
-          gain.gain.setValueAtTime(0.4, t + timeOffset);
-          gain.gain.exponentialRampToValueAtTime(1e-3, t + timeOffset + 0.2);
+          osc.frequency.setValueAtTime(500 + idx * 300, t + timeOffset);
+          gain.gain.setValueAtTime(0.45, t + timeOffset);
+          gain.gain.exponentialRampToValueAtTime(1e-3, t + timeOffset + 0.22);
           osc.connect(gain);
           gain.connect(this.sfxGain);
           osc.start(t + timeOffset);
-          osc.stop(t + timeOffset + 0.2);
+          osc.stop(t + timeOffset + 0.22);
         });
         const chord = [130.81, 196, 261.63, 392, 523.25, 659.25];
         chord.forEach((freq) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "sawtooth";
-          osc.frequency.setValueAtTime(freq, t + 2.5);
-          gain.gain.setValueAtTime(0.3, t + 2.5);
+          osc.frequency.setValueAtTime(freq, t + 1.8);
+          gain.gain.setValueAtTime(0.32, t + 1.8);
           gain.gain.exponentialRampToValueAtTime(1e-3, t + 5.5);
           osc.connect(gain);
           gain.connect(this.sfxGain);
-          osc.start(t + 2.5);
+          osc.start(t + 1.8);
           osc.stop(t + 5.5);
         });
       } catch (e) {
@@ -28990,13 +29384,13 @@ void main() {
       try {
         const t = this.ctx.currentTime;
         const melody = [
-          { f: 392, d: 0.3 },
+          { f: 392, d: 0.35 },
           // G4
-          { f: 523.25, d: 0.3 },
-          // C5
-          { f: 659.25, d: 0.3 },
+          { f: 528, d: 0.35 },
+          // C5 (528Hz Solfeggio)
+          { f: 659.25, d: 0.35 },
           // E5
-          { f: 783.99, d: 0.8 }
+          { f: 783.99, d: 0.95 }
           // G5
         ];
         let cur = t;
@@ -29005,7 +29399,7 @@ void main() {
           const gain = this.ctx.createGain();
           osc.type = "triangle";
           osc.frequency.setValueAtTime(m.f, cur);
-          gain.gain.setValueAtTime(0.4, cur);
+          gain.gain.setValueAtTime(0.45, cur);
           gain.gain.exponentialRampToValueAtTime(1e-3, cur + m.d);
           osc.connect(gain);
           gain.connect(this.sfxGain);
@@ -29013,6 +29407,7 @@ void main() {
           osc.stop(cur + m.d);
           cur += m.d;
         });
+        this.playMysticChime();
       } catch (e) {
       }
     }
@@ -30366,14 +30761,17 @@ void main() {
       if (this.state.state.puzzles.libraryCabinetUnlocked) return;
       this.state.state.puzzles.libraryCabinetUnlocked = true;
       this.state.save();
+      sound.playWallCracking();
+      sound.playStoneGrinding(1.8);
       sound.playPuzzleSolved();
+      sound.playMysticWhisper();
       this.game.openLibraryCabinet();
       this.game.showBannerPopup("ARCHIVE UNLOCKED!", "The Ornate Cabinet has opened! Collect the Whispering Key.");
     }
     collectLibraryKey() {
       if (this.state.hasKey("libraryKey")) return;
       this.state.collectKey("libraryKey");
-      sound.playKeyPickup();
+      sound.playKeyPickup("brass");
       this.game.hideLibraryKeyMesh();
       this.game.openDoor("door1");
       this.game.showBannerPopup("KEY ACQUIRED!", "Key 1 (Library Key) added to inventory! Observatory Door Unlocked.");
@@ -30400,6 +30798,9 @@ void main() {
       if (this.state.state.puzzles.observatoryAligned) return;
       this.state.state.puzzles.observatoryAligned = true;
       this.state.save();
+      sound.playWallCracking();
+      sound.playStoneGrinding(2.2);
+      sound.playSingingBowl(528, 4);
       sound.playPuzzleSolved();
       this.game.openObservatoryVault();
       this.game.showBannerPopup("CELESTIAL HARMONY!", "The Armillary Vault has rotated open! Collect the Astral Key.");
@@ -30407,7 +30808,7 @@ void main() {
     collectObservatoryKey() {
       if (this.state.hasKey("observatoryKey")) return;
       this.state.collectKey("observatoryKey");
-      sound.playKeyPickup();
+      sound.playKeyPickup("silver");
       this.game.hideObservatoryKeyMesh();
       this.game.openDoor("door2");
       this.game.showBannerPopup("KEY ACQUIRED!", "Key 2 (Astral Silver Key) added to inventory! Temple Door Unlocked.");
@@ -30452,6 +30853,9 @@ void main() {
       if (this.state.state.puzzles.templeBalanced) return;
       this.state.state.puzzles.templeBalanced = true;
       this.state.save();
+      sound.playWallCracking();
+      sound.playStoneSlabSlide(2.6);
+      sound.playSingingBowl(432, 4.5);
       sound.playPuzzleSolved();
       this.game.openTempleAltar();
       this.game.showBannerPopup("SOLAR-LUNAR EQUILIBRIUM!", "The shadows intersect! The stone altar has opened.");
@@ -30459,7 +30863,7 @@ void main() {
     collectTempleKey() {
       if (this.state.hasKey("templeKey")) return;
       this.state.collectKey("templeKey");
-      sound.playKeyPickup();
+      sound.playKeyPickup("obsidian");
       this.game.hideTempleKeyMesh();
       this.game.showBannerPopup("ANCIENT KEY ACQUIRED!", "Proceed to the Master Exit Portal on the North Wall to investigate!");
     }
@@ -30469,6 +30873,8 @@ void main() {
       if (this.state.state.puzzles.exitPortalUnlocked) return;
       this.state.state.puzzles.exitPortalUnlocked = true;
       this.state.save();
+      sound.playWallCracking();
+      sound.playStoneGrinding(3.5);
       sound.playTwistReveal();
       this.game.ui.showTwistCutscene();
     }
@@ -30587,6 +30993,26 @@ void main() {
           sound.setMasterVolume(parseFloat(e.target.value));
         });
       }
+      const sfxButtons = [
+        { id: "test-sfx-stone", fn: () => sound.playStoneGrinding(2, 1, 1) },
+        { id: "test-sfx-crack", fn: () => sound.playWallCracking() },
+        { id: "test-sfx-brass", fn: () => sound.playKeyPickup("brass") },
+        { id: "test-sfx-silver", fn: () => sound.playKeyPickup("silver") },
+        { id: "test-sfx-obsidian", fn: () => sound.playKeyPickup("obsidian") },
+        { id: "test-sfx-bowl", fn: () => sound.playSingingBowl(528, 4) },
+        { id: "test-sfx-whisper", fn: () => sound.playMysticWhisper() },
+        { id: "test-sfx-chime", fn: () => sound.playMysticChime() }
+      ];
+      sfxButtons.forEach(({ id, fn }) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            sound.ensureContext();
+            fn();
+          });
+        }
+      });
       this.setupMobileControls();
     }
     /* ---------------- CHARACTER CREATION & START ---------------- */
@@ -30693,11 +31119,30 @@ void main() {
       <span class="icon">\u{1F511}</span>
       <span>KEYS: ${count} / 3</span>
       <div class="key-badges-row">
-        <span class="key-slot ${k.libraryKey ? "active" : ""}" title="Key 1: Antique Brass Library Key">I</span>
-        <span class="key-slot ${k.observatoryKey ? "active" : ""}" title="Key 2: Astral Silver Observatory Key">II</span>
-        <span class="key-slot ${k.templeKey ? "active" : ""}" title="Key 3: Obsidian Temple Key">III</span>
+        <span class="key-slot ${k.libraryKey ? "active" : ""}" data-key="brass" title="Key 1: Antique Brass Library Key (Click to inspect)">I</span>
+        <span class="key-slot ${k.observatoryKey ? "active" : ""}" data-key="silver" title="Key 2: Astral Silver Observatory Key (Click to inspect)">II</span>
+        <span class="key-slot ${k.templeKey ? "active" : ""}" data-key="obsidian" title="Key 3: Obsidian Temple Key (Click to inspect)">III</span>
       </div>
     `;
+      this.hudKeys.querySelectorAll(".key-slot").forEach((slot) => {
+        slot.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const keyType = slot.dataset.key;
+          const keyNames = {
+            brass: { name: "Antique Brass Key", desc: "Heavy forged skeleton key. Emits a warm metallic bell chime." },
+            silver: { name: "Astral Silver Key", desc: "Etched with celestial constellations. Resonates with singing bowl frequencies." },
+            obsidian: { name: "Obsidian Temple Key", desc: "Volcanic glass artifact. Hummed with deep subterranean gong vibration." }
+          };
+          const info = keyNames[keyType];
+          if (slot.classList.contains("active")) {
+            sound.playKeyPickup(keyType);
+            this.showBanner(info.name, info.desc);
+          } else {
+            sound.playKeyJingle();
+            this.showBanner("UNCLAIMED KEY", `The ${info.name} remains sealed in the chambers.`);
+          }
+        });
+      });
     }
     updateBatteryHUD(percent) {
       if (this.batteryFill) {
@@ -31236,7 +31681,7 @@ void main() {
               this.puzzleManager.collectLibraryKey();
             } else if (!this.state.state.puzzles.libraryCabinetUnlocked) {
               this.showBannerPopup("CABINET LOCKED", "Requires sacred tome sequence (Falcon \u2794 Serpent \u2794 Wolf).");
-              sound.playFlashlightClick(false);
+              sound.playStoneLocked();
             }
           } else if (data.type === "mirror") {
             data.mirrorRef.rotate();
@@ -31245,7 +31690,7 @@ void main() {
               this.puzzleManager.collectObservatoryKey();
             } else if (!this.state.state.puzzles.observatoryAligned) {
               this.showBannerPopup("VAULT SEALED", "Align Mirror Alpha (45\xB0) and Beta (135\xB0) with the Astral Glyph!");
-              sound.playFlashlightClick(false);
+              sound.playStoneLocked();
             }
           } else if (data.type === "brazier") {
             this.puzzleManager.cycleBrazier(data.brazierType);
@@ -31254,7 +31699,7 @@ void main() {
               this.puzzleManager.collectTempleKey();
             } else if (!this.state.state.puzzles.templeBalanced) {
               this.showBannerPopup("ALTAR SEALED", "Tune Sun and Moon braziers to equal 50% balance.");
-              sound.playFlashlightClick(false);
+              sound.playStoneLocked();
             }
           } else if (data.type === "final_portal") {
             this.puzzleManager.triggerFinalExit();
@@ -31340,6 +31785,9 @@ void main() {
       }
     }
     triggerCinematicVictory() {
+      sound.playStoneGrinding(3.6, 0.7, 1.25);
+      sound.playWallCracking();
+      sound.playSingingBowl(528, 4.2);
       if (this.architect.exitPortal) {
         this.architect.exitPortal.isOpen = true;
         this.architect.exitPortal.targetOffset = 3.4;
@@ -31602,6 +32050,7 @@ void main() {
       if (newLevel !== this.state.state.currentLevel) {
         this.state.state.currentLevel = newLevel;
         sound.startAmbience(newLevel);
+        sound.playChamberTransition(newLevel);
         this.ui.updateHUDFromState();
         this.state.save();
       }
