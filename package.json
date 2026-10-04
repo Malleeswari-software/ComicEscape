@@ -1,0 +1,17 @@
+{
+  "name": "comicescape",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx esbuild js/main.js --bundle --outfile=dist/bundle.js",
+    "dev": "python -m http.server 8888"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "three": "^0.186.1"
+  }
+}

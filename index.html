@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THE ESCAPE PROTOCOL: Shadows of the Forgotten</title>
+  <meta name="description" content="A premium 15-minute cinematic comic-based escape room game. Explore three mysterious chambers, solve illuminated graphic-novel puzzles, and conquer the Shadows of the Forgotten.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Cinzel:wght@600;700;900&family=Outfit:wght@400;600;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #04060c;
+      color: #e2e8f0;
+      font-family: 'Outfit', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      overflow: hidden;
+    }
+
+    canvas#webgl-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ---------------- HUD STYLING ---------------- */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px 28px;
+    }
+
+    .hud-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hud-badge {
+      background: rgba(10, 17, 34, 0.92);
+      border: 2px solid rgba(56, 189, 248, 0.4);
+      padding: 8px 16px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-size: 13.5px;
+      color: #f8fafc;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-color: #38bdf8;
+    }
+
+    .hud-avatar-circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid #38bdf8;
+      object-fit: cover;
+      background: #1e293b;
+    }
+
+    .hud-badge .icon {
+      font-size: 17px;
+    }
+
+    /* Key slots row */
+    .key-badges-row {
+      display: flex;
+      gap: 6px;
+      margin-left: 6px;
+    }
+
+    .key-slot {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+      line-height: 20px;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.3s;
+    }
+
+    .key-slot.active {
+      background: #f59e0b;
+      border-color: #fef08a;
+      color: #0f172a;
+      box-shadow: 0 0 10px #f59e0b;
+      transform: scale(1.1);
+    }
+
+    #timer {
+      color: #f43f5e;
+      font-family: 'Space Mono', monospace;
+      font-size: 15px;
+      border-color: rgba(244, 63, 94, 0.5);
+      animation: timerPulse 2s infinite ease-in-out;
+    }
+
+    @keyframes timerPulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(244, 63, 94, 0.2); }
+      50% { box-shadow: 0 0 20px rgba(244, 63, 94, 0.5); }
+    }
+
+    .hud-btn-action {
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hud-btn-action:hover {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+      transform: translateY(-2px);
+    }
+
+    .hud-btn-action.active {
+      border-color: #22c55e;
+      color: #4ade80;
+    }
+
+    /* Battery Meter */
+    .battery-widget {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .battery-bar {
+      width: 50px;
+      height: 10px;
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .battery-fill {
+      height: 100%;
+      width: 100%;
+      background: #38bdf8;
+      transition: width 0.3s, background 0.3s;
+    }
+
+    /* Center Crosshair */
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #crosshair::before, #crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(56, 189, 248, 0.85);
+      box-shadow: 0 0 6px #38bdf8;
+    }
+
+    #crosshair::before { width: 14px; height: 2px; }
+    #crosshair::after { width: 2px; height: 14px; }
+
+    #crosshair-dot {
+      width: 4px;
+      height: 4px;
+      background: #ffffff;
+      border-radius: 50%;
+    }
+
+    /* Interaction Prompt Hint */
+    #prompt-hint {
+      position: absolute;
+      top: 56%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+      padding: 10px 24px;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: none;
+      z-index: 15;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+    }
+
+    /* Comic Onomatopoeia Popup Banner */
+    #comic-popup-banner {
+      position: absolute;
+      bottom: 96px;
+      left: 50%;
+      transform: translate(-50%, 20px) scale(0.95);
+      background: #facc15;
+      color: #000;
+      border: 4px solid #000;
+      box-shadow: 8px 8px 0px #0284c7;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-family: 'Bangers', cursive, sans-serif;
+      font-size: 20px;
+      letter-spacing: 1px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 25;
+      text-transform: uppercase;
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    /* Bottom Flashlight Toolbar */
+    .hud-bottom-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      pointer-events: auto;
+    }
+
+    .light-deck {
+      display: flex;
+      background: rgba(10, 17, 34, 0.92);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 6px;
+      gap: 8px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .light-btn {
+      background: #1e293b;
+      border: 2px solid #334155;
+      color: #94a3b8;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      padding: 9px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .light-btn:hover {
+      background: #334155;
+      color: #fff;
+      transform: translateY(-2px);
+    }
+
+    .light-btn.active#btn-mode-white {
+      background: #e2e8f0;
+      color: #0f172a;
+      border-color: #f8fafc;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.7);
+    }
+
+    .light-btn.active#btn-mode-uv {
+      background: #7c3aed;
+      color: #ffffff;
+      border-color: #a855f7;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.8);
+    }
+
+    .light-btn.active#btn-mode-laser {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #f87171;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+    }
+
+    .light-btn .key-hint {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+
+    /* ---------------- TACTICAL HINT BOX ---------------- */
+    #hint-dossier-box {
+      position: absolute;
+      top: 80px;
+      right: 28px;
+      width: 440px;
+      max-width: 90vw;
+      background: rgba(15, 23, 42, 0.96);
+      border: 3px solid #38bdf8;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 30px rgba(56, 189, 248, 0.3);
+      backdrop-filter: blur(14px);
+      z-index: 25;
+      display: none;
+      pointer-events: auto;
+      animation: hintFadeIn 0.25s ease-out;
+    }
+
+    @keyframes hintFadeIn {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hint-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid rgba(56, 189, 248, 0.3);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .hint-title {
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: 20px;
+      color: #facc15;
+      letter-spacing: 1px;
+    }
+
+    .hint-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .hint-close:hover { color: #f43f5e; }
+
+    .hint-step {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      font-size: 13.5px;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+
+    .hint-step .step-num {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      background: #0284c7;
+      color: #fff;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 22px;
+      font-size: 12px;
+      font-weight: 900;
+      margin-right: 8px;
+    }
+
+    .btn-hint-tier {
+      width: 100%;
+      padding: 10px;
+      background: #0284c7;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 8px;
+    }
+
+    .btn-hint-tier:hover { background: #0369a1; }
+
+    /* ---------------- OVERLAYS & MODALS ---------------- */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.94);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #0f172a;
+      border: 3px solid #38bdf8;
+      border-radius: 20px;
+      padding: 32px 36px;
+      width: 620px;
+      max-width: 95vw;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(56, 189, 248, 0.25);
+      text-align: center;
+    }
+
+    .cover-banner {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 2px solid rgba(56, 189, 248, 0.4);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      color: #facc15;
+      font-size: 32px;
+      letter-spacing: 2px;
+      text-shadow: 2px 2px 0 #000;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #38bdf8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 14px;
+    }
+
+    p {
+      font-size: 13.5px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 16px;
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      color: #fff;
+      outline: none;
+      font-size: 16px;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .error-msg {
+      color: #f43f5e;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 4px;
+      display: none;
+    }
+
+    /* Character Selection Cards */
+    .character-select-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .char-choice-card {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 14px;
+      padding: 10px 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .char-choice-card input[type="radio"] { display: none; }
+
+    .char-choice-card:hover {
+      border-color: #38bdf8;
+      transform: translateY(-2px);
+    }
+
+    .char-choice-card:has(input[type="radio"]:checked),
+    .char-choice-card.selected {
+      background: #0f2744;
+      border-color: #38bdf8;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+    }
+
+    .char-img-wrap {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 6px;
+    }
+
+    .char-img-wrap img {
+      max-height: 100%;
+      max-width: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+    }
+
+    .char-title {
+      font-family: 'Cinzel', serif;
+      font-size: 15px;
+      font-weight: 900;
+      color: #facc15;
+    }
+
+    .char-spec {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 2px;
+      line-height: 1.2;
+    }
+
+    /* Mode Selection */
+    .mode-select-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .mode-choice-card {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 12px;
+      padding: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+
+    .mode-choice-card.selected {
+      background: #0f2744;
+      border-color: #22c55e;
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+    }
+
+    .mode-choice-card.disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .mode-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .mode-desc {
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      color: white;
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 28px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 18px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+    }
+
+    .btn-primary:hover {
+      background: #0369a1;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.6);
+    }
+
+    /* Click to Resume Control Banner */
+    #click-to-play {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(6px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      cursor: pointer;
+    }
+
+    #click-to-play h2 {
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: 32px;
+      color: #facc15;
+      text-shadow: 2px 2px 0 #000;
+      margin-bottom: 8px;
+    }
+
+    #click-to-play p {
+      font-size: 15px;
+      color: #e2e8f0;
+      margin-bottom: 0;
+    }
+
+    /* ---------------- COMIC DOSSIER MODAL ---------------- */
+    #comic-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+      backdrop-filter: blur(8px);
+      padding: 20px;
+    }
+
+    .comic-wrapper {
+      background: #0f172a;
+      border: 3px solid #38bdf8;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(56, 189, 248, 0.3);
+      padding: 24px;
+      border-radius: 16px;
+      max-width: 960px;
+      width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .comic-nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #334155;
+      padding-bottom: 8px;
+    }
+
+    .journal-tab {
+      background: #1e293b;
+      border: 2px solid #334155;
+      color: #94a3b8;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .journal-tab.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+    }
+
+    .comic-full-artwork {
+      width: 100%;
+      max-height: 480px;
+      object-fit: contain;
+      border: 4px solid #000;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      background: #000;
+    }
+
+    .comic-panels-breakdown {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .comic-panel-modal {
+      background: #ffffff;
+      border: 3px solid #000;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 180px;
+      box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+    }
+
+    .panel-speech {
+      background: #ffffff;
+      border: 2px solid #000;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #000;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+
+    .panel-burst {
+      font-family: 'Bangers', cursive, sans-serif;
+      font-size: 32px;
+      text-align: center;
+      margin: 8px 0;
+    }
+
+    .panel-caption {
+      background: #000;
+      color: #facc15;
+      font-weight: 900;
+      font-size: 11px;
+      padding: 4px;
+      text-align: center;
+    }
+
+    .uv-cipher-note {
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+      color: #38bdf8;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .close-comic-btn {
+      padding: 10px 32px;
+      background: #e11d48;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .close-comic-btn:hover { background: #be123c; }
+
+    /* ---------------- PAUSE MODAL ---------------- */
+    #pause-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.92);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 70;
+    }
+
+    /* ---------------- VICTORY MODAL ---------------- */
+    #victory-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 80;
+      padding: 20px;
+    }
+
+    .victory-card {
+      background: #0f172a;
+      border: 3px solid #22c55e;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(34, 197, 94, 0.4);
+      border-radius: 20px;
+      padding: 32px;
+      width: 640px;
+      max-width: 95vw;
+      text-align: center;
+    }
+
+    .victory-banner {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 2px solid #22c55e;
+      margin-bottom: 18px;
+    }
+
+    .victory-stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .vic-stat-box {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .vic-stat-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 20px;
+      font-weight: 900;
+      color: #facc15;
+    }
+
+    .vic-stat-label {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* ---------------- MOBILE TOUCH CONTROLS ---------------- */
+    #mobile-controls {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: none;
+      z-index: 18;
+    }
+
+    .mobile-dpad {
+      position: absolute;
+      bottom: 28px;
+      left: 28px;
+      width: 140px;
+      height: 140px;
+      pointer-events: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+      gap: 4px;
+    }
+
+    .mob-btn {
+      background: rgba(15, 23, 42, 0.85);
+      border: 2px solid rgba(56, 189, 248, 0.6);
+      border-radius: 10px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+    }
+
+    .mobile-actions {
+      position: absolute;
+      bottom: 28px;
+      right: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .mob-action-btn {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: #0284c7;
+      border: 2px solid #38bdf8;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5);
+    }
+
+    .btn-sfx-test {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-sfx-test:hover {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: #facc15;
+      color: #facc15;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <!-- 3D WebGL Canvas -->
+  <canvas id="webgl-canvas"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" style="display: none;">
+    <!-- Top Status Bar -->
+    <div class="hud-top-bar">
+      <!-- Player Profile Badge -->
+      <div class="hud-badge player-profile-badge">
+        <img id="hud-avatar-img" src="assets/girl_portrait_trans.png" class="hud-avatar-circle" alt="Operative Avatar">
+        <span id="hud-player-name">Alex</span>
+      </div>
+
+      <!-- Current Chamber Location -->
+      <div class="hud-badge" id="hud-chamber">
+        <span class="icon">🏛️</span>
+        <span>CHAMBER: 1 / 3: THE FORGOTTEN LIBRARY</span>
+      </div>
+
+      <!-- 3-Key Inventory Tracker -->
+      <div class="hud-badge" id="hud-keys">
+        <span class="icon">🔑</span>
+        <span>KEYS: 0 / 3</span>
+        <div class="key-badges-row">
+          <span class="key-slot" title="Key 1: Library">I</span>
+          <span class="key-slot" title="Key 2: Observatory">II</span>
+          <span class="key-slot" title="Key 3: Temple">III</span>
+        </div>
+      </div>
+
+      <!-- 15-Minute Countdown Timer -->
+      <div class="hud-badge" id="timer">
+        <span class="icon">⏱️</span>
+        <span>TIME: 15:00</span>
+      </div>
+
+      <!-- Flashlight Battery -->
+      <div class="hud-badge battery-widget">
+        <span>🔋</span>
+        <div class="battery-bar"><div class="battery-fill" id="battery-fill"></div></div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div style="display: flex; gap: 8px; pointer-events: auto;">
+        <button id="btn-toggle-journal" class="hud-badge hud-btn-action">
+          <span>📖 JOURNAL [J]</span>
+        </button>
+        <button id="btn-toggle-hints" class="hud-badge hud-btn-action">
+          <span>💡 HINTS [H]</span>
+        </button>
+        <button id="btn-toggle-music" class="hud-badge hud-btn-action active">
+          <span>🎵 MUSIC: ON</span>
+        </button>
+        <button id="btn-pause-menu" class="hud-badge hud-btn-action">
+          <span>⚙️ [ESC]</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Reticle / Crosshair -->
+    <div id="crosshair">
+      <div id="crosshair-dot"></div>
+    </div>
+
+    <!-- Interaction Prompt -->
+    <div id="prompt-hint">Press [E] to interact</div>
+
+    <!-- Comic Onomatopoeia Popup Banner -->
+    <div id="comic-popup-banner">CLIK-CLAK! SYSTEM ENGAGED</div>
+
+    <!-- 3-Tier Tactical Hint Box -->
+    <div id="hint-dossier-box">
+      <div class="hint-header">
+        <div class="hint-title">💡 TACTICAL CIPHER HINTS</div>
+        <button id="btn-close-hint" class="hint-close">✕</button>
+      </div>
+      <div id="hint-content-text">
+        <!-- Injected dynamically -->
+      </div>
+      <button id="btn-next-hint-tier" class="btn-hint-tier">REVEAL TIER 2 HINT</button>
+      <div style="font-size: 11px; color: #64748b; text-align: center; margin-top: 8px;">Press [H] anytime to toggle hints</div>
+    </div>
+
+    <!-- Bottom Light Controls Toolbar -->
+    <div class="hud-bottom-bar">
+      <div class="light-deck">
+        <button class="light-btn active" id="btn-mode-white">
+          <span>🔦 WHITE FLOODLIGHT</span>
+          <span class="key-hint">[1]</span>
+        </button>
+        <button class="light-btn" id="btn-mode-uv">
+          <span>🔬 UV BLACKLIGHT</span>
+          <span class="key-hint">[2]</span>
+        </button>
+        <button class="light-btn" id="btn-mode-laser">
+          <span>⚡ FOCUSED LASER</span>
+          <span class="key-hint">[3]</span>
+        </button>
+        <button class="light-btn" id="btn-toggle-flash">
+          <span>💡 TOGGLE</span>
+          <span class="key-hint">[F]</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Touch Controls -->
+  <div id="mobile-controls">
+    <div class="mobile-dpad">
+      <div></div>
+      <div class="mob-btn" id="mob-btn-up">▲</div>
+      <div></div>
+      <div class="mob-btn" id="mob-btn-left">◀</div>
+      <div></div>
+      <div class="mob-btn" id="mob-btn-right">▶</div>
+      <div></div>
+      <div class="mob-btn" id="mob-btn-down">▼</div>
+      <div></div>
+    </div>
+    <div class="mobile-actions">
+      <button class="mob-action-btn" id="mob-btn-interact">[E]</button>
+      <button class="mob-action-btn" id="mob-btn-flash">🔦</button>
+      <button class="mob-action-btn" id="mob-btn-mode">1/2/3</button>
+    </div>
+  </div>
+
+  <!-- Click to Resume Control Overlay -->
+  <div id="click-to-play">
+    <h2>CLICK TO RESUME OPERATIVE CONTROL</h2>
+    <p>Move: <strong>[W, A, S, D]</strong> • Aim: <strong>Mouse</strong> • Interact: <strong>[E]</strong> • Light Modes: <strong>[1, 2, 3]</strong> • Journal: <strong>[J]</strong> • Hints: <strong>[H]</strong></p>
+  </div>
+
+  <!-- Pre-Game Character Creation & Mode Setup Modal -->
+  <div id="setup-modal" class="overlay">
+    <div class="card">
+      <img src="assets/cover_art.jpg" alt="The Escape Protocol Cover Art" class="cover-banner">
+      <h1>THE ESCAPE PROTOCOL</h1>
+      <div class="subtitle">Shadows of the Forgotten • Cinematic Escape Room</div>
+      
+      <p>Three sealed chambers separate you from freedom: The Forgotten Library, The Observatory of Lost Stars, and The Temple of Living Shadows. Decode graphic-novel clues, bend multi-spectral light, and acquire the 3 keys before the 15-minute lockdown.</p>
+
+      <!-- Player Name Input (Required & Validated) -->
+      <div class="input-group">
+        <label for="pname">OPERATIVE NAME *</label>
+        <input type="text" id="pname" value="Alex" placeholder="Enter your operative name..." maxlength="20" autocomplete="off" />
+        <div class="error-msg" id="name-error">Please enter a valid name.</div>
+      </div>
+
+      <!-- Character Appearance -->
+      <div class="input-group">
+        <label>CHOOSE YOUR EXPLORER APPAREL</label>
+        <div class="character-select-grid">
+          <label class="char-choice-card" for="gender-f">
+            <input type="radio" id="gender-f" name="gender" value="female" checked>
+            <div class="char-img-wrap">
+              <img src="assets/character_girl_trans.png" alt="Maya Female Explorer">
+            </div>
+            <div class="char-title">MAYA</div>
+            <div class="char-spec">Athletic Sportswear Jumpsuit</div>
+          </label>
+
+          <label class="char-choice-card" for="gender-m">
+            <input type="radio" id="gender-m" name="gender" value="male">
+            <div class="char-img-wrap">
+              <img src="assets/character_boy_trans.png" alt="Leo Male Explorer">
+            </div>
+            <div class="char-title">LEO</div>
+            <div class="char-spec">Athletic Outdoor Tracksuit</div>
+          </label>
+
+          <label class="char-choice-card" for="gender-x">
+            <input type="radio" id="gender-x" name="gender" value="other">
+            <div class="char-img-wrap">
+              <img id="char-preview-img" src="assets/character_girl_trans.png" alt="Custom Appearance">
+            </div>
+            <div class="char-title">CUSTOM</div>
+            <div class="char-spec">Prefer not to say</div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Game Mode Selection -->
+      <div class="input-group">
+        <label>DEPLOYMENT PROTOCOL</label>
+        <div class="mode-select-grid">
+          <div class="mode-choice-card selected" data-mode="single">
+            <div class="mode-title">SOLO INFILTRATION</div>
+            <div class="mode-desc">Standard 15-minute escape room protocol. Active.</div>
+          </div>
+          <div class="mode-choice-card disabled" data-mode="multiplayer">
+            <div class="mode-title">CO-OP PROTOCOL 🔒</div>
+            <div class="mode-desc">Multi-terminal network link (Classified • Future Deployment).</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="start-btn">ENGAGE ESCAPE PROTOCOL</button>
+    </div>
+  </div>
+
+  <!-- Comic Reader Dossier Modal -->
+  <div id="comic-modal">
+    <div class="comic-wrapper">
+      <div class="comic-nav-tabs">
+        <button class="journal-tab active" data-comic="library">CHAPTER I: THE LIBRARY</button>
+        <button class="journal-tab" data-comic="observatory">CHAPTER II: THE OBSERVATORY</button>
+        <button class="journal-tab" data-comic="temple">CHAPTER III: THE TEMPLE</button>
+      </div>
+      <div class="comic-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2 id="comic-title" style="font-family: 'Cinzel', serif; color: #facc15; font-size: 24px;">THE ESCAPE CHRONICLES</h2>
+      </div>
+      <div id="comic-strip-container">
+        <!-- Injected dynamically -->
+      </div>
+      <div style="text-align: center; margin-top: 16px;">
+        <button class="close-comic-btn" id="close-comic">CLOSE DOSSIER</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause / Settings Modal -->
+  <div id="pause-modal">
+    <div class="card" style="width: 440px;">
+      <h1 style="font-size: 26px;">MISSION PAUSED</h1>
+      <p style="font-size: 13px;">Extraction timer paused. Configure protocol settings.</p>
+
+      <div class="input-group">
+        <label>SOUND & AMBIENCE VOLUME</label>
+        <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.7" style="width: 100%;">
+      </div>
+
+      <!-- Mystic Sound Testing Suite -->
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 14px; text-align: left;">
+        <div style="font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: #facc15; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <span>🔮</span><span>MYSTIC AUDIO LAB & SOUND EFFECTS</span>
+        </div>
+        <p style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">
+          Click to test physical stone kinetics, masonry cracking, and modal keys:
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <button type="button" class="btn-sfx-test" id="test-sfx-stone">🪨 Stone Grinding</button>
+          <button type="button" class="btn-sfx-test" id="test-sfx-crack">⚡ Wall Cracking</button>
+          <button type="button" class="btn-sfx-test" id="test-sfx-brass">🔑 Brass Skeleton Key</button>
+          <button type="button" class="btn-sfx-test" id="test-sfx-silver">🗝️ Astral Silver Key</button>
+          <button type="button" class="btn-sfx-test" id="test-sfx-obsidian">🏺 Obsidian Temple Key</button>
+          <button type="button" class="btn-sfx-test" id="test-sfx-bowl">🔔 Tibetan Singing Bowl</button>
+          <button type="button" class="btn-sfx-test" id="test-sfx-whisper">💨 Shadow Whisper</button>
+          <button type="button" class="btn-sfx-test" id="test-sfx-chime">✨ Solfeggio Chime</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-resume-game" style="margin-bottom: 10px;">RESUME MISSION</button>
+      <button class="btn-primary" id="btn-restart-game" style="background: #334155;">RESTART PROTOCOL</button>
+    </div>
+  </div>
+
+  <!-- Dramatic Plot-Twist Cutscene Modal -->
+  <div id="twist-modal" class="overlay" style="display: none; z-index: 75;">
+    <div class="comic-wrapper" style="border-color: #facc15; box-shadow: 0 0 40px rgba(250, 204, 21, 0.4); max-width: 920px;">
+      <div class="comic-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #facc15; padding-bottom: 10px; margin-bottom: 16px;">
+        <div>
+          <span style="background: #e11d48; color: #fff; font-weight: 900; padding: 4px 10px; border-radius: 4px; font-size: 12px; letter-spacing: 1px;">CRITICAL PLOT TWIST</span>
+          <h2 style="font-family: 'Cinzel', serif; color: #facc15; font-size: 26px; margin-top: 4px;">THE ARCHITECT'S DECEPTION REVEALED</h2>
+        </div>
+        <div style="font-size: 28px;">⚡</div>
+      </div>
+
+      <div class="comic-panels-breakdown" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <div class="comic-panel-modal" style="background: #fffbeb;">
+          <div class="panel-speech">"Wait! Look into the three keyholes... They're solid granite! There are NO lock tumblers inside!"</div>
+          <div class="panel-burst" style="color: #ef4444;">WHAT?!</div>
+          <div class="panel-caption">PANEL 1: THE HOLLOW FACADE</div>
+        </div>
+
+        <div class="comic-panel-modal" style="background: #fef2f2;">
+          <div class="panel-speech">"The three keys were an ancient psychological trap! Intruders would wander in the dark forever, searching for keys to a door that was never locked!"</div>
+          <div class="panel-burst" style="color: #f59e0b;">DECOYS!</div>
+          <div class="panel-caption">PANEL 2: THE SHADOW TRAP</div>
+        </div>
+
+        <div class="comic-panel-modal" style="background: #f0fdf4;">
+          <div class="panel-speech">"An ancient inscription blazes across the stone: 'FREEDOM REQUIRES NO KEYS. THE PORTAL OPENS TO COURAGE AND LIGHT!'"</div>
+          <div class="panel-burst" style="color: #22c55e;">AWAKEN!</div>
+          <div class="panel-caption">PANEL 3: THE TRUE LAW</div>
+        </div>
+
+        <div class="comic-panel-modal" style="background: #eff6ff;">
+          <div class="panel-speech">"CRRR-RAAACK! The colossal portal responds to your beam! The false locks shatter—the gate is opening on its own!"</div>
+          <div class="panel-burst" style="color: #0284c7;">BREACH!</div>
+          <div class="panel-caption">PANEL 4: FREEDOM PROTOCOL</div>
+        </div>
+      </div>
+
+      <div class="uv-cipher-note" style="border-color: #facc15; color: #facc15; background: rgba(250, 204, 21, 0.1); font-size: 15px;">
+        ✨ <strong>THE PLOT TWIST:</strong> The final door opens WITHOUT ANY KEYS! The ancient deception is shattered!
+      </div>
+
+      <div style="text-align: center; margin-top: 14px;">
+        <button class="btn-primary" id="btn-breach-twist" style="background: #22c55e; font-size: 19px; box-shadow: 0 0 25px rgba(34, 197, 94, 0.5);">
+          STEP FORWARD • BREACH INTO THE LIGHT
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Victory Screen Overlay with Plot Twist -->
+  <div id="victory-modal">
+    <div class="victory-card">
+      <img src="assets/victory_sunrise.jpg" alt="Sunrise Over Ancient Mountains" class="victory-banner">
+      <h1 style="color: #22c55e; font-size: 28px;">ESCAPE PROTOCOL CLEARED: THE DECOY TWIST!</h1>
+      <div class="subtitle" style="color: #facc15;">THE FINAL DOOR WAS NEVER LOCKED — YOU DISCOVERED THE TRUTH!</div>
+      <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+        Brilliant work, Operative <strong id="vic-player-name" style="color: #facc15;">Alex</strong>! You bypassed the psychological trap of the ancient architects. While countless souls wandered the shadows searching for keys in the dark, you faced the gate directly with light and courage, shattering the false locks without a single key!
+      </p>
+
+      <div class="victory-stats-grid">
+        <div class="vic-stat-box">
+          <div class="vic-stat-num" id="vic-time-taken">11m 42s</div>
+          <div class="vic-stat-label">Extraction Time</div>
+        </div>
+        <div class="vic-stat-box">
+          <div class="vic-stat-num" id="vic-keys-recovered">Decoy Keys Bypassed</div>
+          <div class="vic-stat-label">Door Opened Without Keys</div>
+        </div>
+        <div class="vic-stat-box">
+          <div class="vic-stat-num" id="vic-hints-used">0 hints</div>
+          <div class="vic-stat-label">Tactical Intel</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 8px; padding: 10px; margin-bottom: 18px; font-size: 13px; color: #4ade80; font-weight: 700;">
+        🌟 PLOT TWIST BADGE: MASTER OF PERCEPTION (FALSE LOCK TRAP EXPOSED)
+      </div>
+
+      <div style="display: flex; gap: 12px;">
+        <button class="btn-primary" onclick="localStorage.removeItem('escape_protocol_save_v1'); location.reload();">PLAY AGAIN</button>
+        <button class="btn-primary" style="background: #334155;" onclick="localStorage.removeItem('escape_protocol_save_v1'); location.reload();">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Time-Up / Lockdown Overlay -->
+  <div id="end-modal" class="overlay" style="display: none;">
+    <div class="card">
+      <h1 id="end-title" style="color: #f43f5e;">LOCKDOWN PERMANENT</h1>
+      <p id="end-msg">The 15-minute countdown expired. The Chambers sealed into oblivion.</p>
+      <div style="display: flex; gap: 12px; margin-top: 14px;">
+        <button class="btn-primary" onclick="localStorage.removeItem('escape_protocol_save_v1'); location.reload();">TRY AGAIN</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="dist/bundle.js?v=4"></script>
+</body>
+</html>
