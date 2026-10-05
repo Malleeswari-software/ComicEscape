@@ -109,7 +109,7 @@ export class WorldArchitect {
   }
 
   /* ---------------- SOLID ENCLOSURE WALLS & PARTITIONS ---------------- */
-  createPartitionWall(x, y, z, width, height, rotY = 0) {
+  createPartitionWall(x, y, z, width, height, rotY = 0, hasCollider = true) {
     const wallGeo = new THREE.BoxGeometry(width, height, 0.8);
     const wallMat = new THREE.MeshStandardMaterial({
       color: 0x162032,
@@ -123,12 +123,14 @@ export class WorldArchitect {
     wall.receiveShadow = true;
     this.scene.add(wall);
 
-    const halfW = (Math.abs(Math.cos(rotY)) * width + Math.abs(Math.sin(rotY)) * 0.8) / 2;
-    const halfD = (Math.abs(Math.sin(rotY)) * width + Math.abs(Math.cos(rotY)) * 0.8) / 2;
-    this.game.colliders.push({
-      minX: x - halfW, maxX: x + halfW,
-      minZ: z - halfD, maxZ: z + halfD
-    });
+    if (hasCollider) {
+      const halfW = (Math.abs(Math.cos(rotY)) * width + Math.abs(Math.sin(rotY)) * 0.8) / 2;
+      const halfD = (Math.abs(Math.sin(rotY)) * width + Math.abs(Math.cos(rotY)) * 0.8) / 2;
+      this.game.colliders.push({
+        minX: x - halfW, maxX: x + halfW,
+        minZ: z - halfD, maxZ: z + halfD
+      });
+    }
     return wall;
   }
 
@@ -169,7 +171,7 @@ export class WorldArchitect {
     // Door 1 (Between Library and Observatory) - Completely Enclosed by Solid Stone Partition Walls
     this.createPartitionWall(-6.2, 3.25, -8, 8.0, 6.5, 0); // Left solid wall
     this.createPartitionWall(6.2, 3.25, -8, 8.0, 6.5, 0);  // Right solid wall
-    this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0);    // Top arch lintel
+    this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0, false); // Top arch lintel (overhead only, no ground collider)
     this.game.doors['door1'] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal");
   }
 
@@ -453,7 +455,7 @@ export class WorldArchitect {
     // Door 2 (Between Observatory and Temple) - Completely Enclosed by Solid Stone Partition Walls
     this.createPartitionWall(-6.2, 3.25, Z_CENTER - 10, 8.0, 6.5, 0); // Left solid wall
     this.createPartitionWall(6.2, 3.25, Z_CENTER - 10, 8.0, 6.5, 0);  // Right solid wall
-    this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0);    // Top arch lintel
+    this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0, false); // Top arch lintel (overhead only, no ground collider)
     this.game.doors['door2'] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway");
   }
 
@@ -643,10 +645,11 @@ export class WorldArchitect {
     // East Wall with ancient carved hieroglyphs
     this.createHieroglyphWall(12, H / 2, Z_CENTER, 24, H, -Math.PI / 2);
 
-    // Colossal Guardian Statues casting long shadows
+    // Colossal Guardian Statues casting long shadows along flanking columns (leaving center walkway clear)
     this.createGuardianStatue(-6, 0, Z_CENTER + 6, Math.PI / 4);
     this.createGuardianStatue(6, 0, Z_CENTER + 6, -Math.PI / 4);
-    this.createGuardianStatue(0, 0, Z_CENTER + 9, 0);
+    this.createGuardianStatue(-6, 0, Z_CENTER + 10, Math.PI / 4);
+    this.createGuardianStatue(6, 0, Z_CENTER + 10, -Math.PI / 4);
 
     // Two Movable/Adjustable Flame Braziers (Sol on right, Luna on left)
     this.brazierSol = this.createFlameBrazier(5.5, 0, Z_CENTER - 1, 'sol', 0xf97316);
@@ -658,7 +661,7 @@ export class WorldArchitect {
     // Door 3 (Between Temple and Master Portal Sanctuary) - Solid Stone Partition Walls
     this.createPartitionWall(-7.1, 3.5, -48, 9.8, 7.0, 0); // Left solid wall
     this.createPartitionWall(7.1, 3.5, -48, 9.8, 7.0, 0);  // Right solid wall
-    this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0);    // Top arch lintel
+    this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0, false); // Top arch lintel (overhead only, no ground collider)
     this.game.doors['door3'] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway");
   }
 

@@ -31170,7 +31170,7 @@ void main() {
       this.scene.add(ceil);
     }
     /* ---------------- SOLID ENCLOSURE WALLS & PARTITIONS ---------------- */
-    createPartitionWall(x, y, z, width, height, rotY = 0) {
+    createPartitionWall(x, y, z, width, height, rotY = 0, hasCollider = true) {
       const wallGeo = new BoxGeometry(width, height, 0.8);
       const wallMat = new MeshStandardMaterial({
         color: 1450034,
@@ -31183,14 +31183,16 @@ void main() {
       wall.castShadow = true;
       wall.receiveShadow = true;
       this.scene.add(wall);
-      const halfW = (Math.abs(Math.cos(rotY)) * width + Math.abs(Math.sin(rotY)) * 0.8) / 2;
-      const halfD = (Math.abs(Math.sin(rotY)) * width + Math.abs(Math.cos(rotY)) * 0.8) / 2;
-      this.game.colliders.push({
-        minX: x - halfW,
-        maxX: x + halfW,
-        minZ: z - halfD,
-        maxZ: z + halfD
-      });
+      if (hasCollider) {
+        const halfW = (Math.abs(Math.cos(rotY)) * width + Math.abs(Math.sin(rotY)) * 0.8) / 2;
+        const halfD = (Math.abs(Math.sin(rotY)) * width + Math.abs(Math.cos(rotY)) * 0.8) / 2;
+        this.game.colliders.push({
+          minX: x - halfW,
+          maxX: x + halfW,
+          minZ: z - halfD,
+          maxZ: z + halfD
+        });
+      }
       return wall;
     }
     /* ---------------- LEVEL 1: THE FORGOTTEN LIBRARY ---------------- */
@@ -31217,7 +31219,7 @@ void main() {
       this.createArchiveCabinet(6.5, 0, -7.5);
       this.createPartitionWall(-6.2, 3.25, -8, 8, 6.5, 0);
       this.createPartitionWall(6.2, 3.25, -8, 8, 6.5, 0);
-      this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0);
+      this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0, false);
       this.game.doors["door1"] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal");
     }
     createBookshelfRow(x, y, z, length, height, rotY) {
@@ -31435,7 +31437,7 @@ void main() {
       this.astralSensor = this.createAstralGlyphSensor(6, 2.2, Z_CENTER - 9.6);
       this.createPartitionWall(-6.2, 3.25, Z_CENTER - 10, 8, 6.5, 0);
       this.createPartitionWall(6.2, 3.25, Z_CENTER - 10, 8, 6.5, 0);
-      this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0);
+      this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0, false);
       this.game.doors["door2"] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway");
     }
     createStarChartWall(x, y, z, width, height, rotY) {
@@ -31599,13 +31601,14 @@ void main() {
       this.createHieroglyphWall(12, H / 2, Z_CENTER, 24, H, -Math.PI / 2);
       this.createGuardianStatue(-6, 0, Z_CENTER + 6, Math.PI / 4);
       this.createGuardianStatue(6, 0, Z_CENTER + 6, -Math.PI / 4);
-      this.createGuardianStatue(0, 0, Z_CENTER + 9, 0);
+      this.createGuardianStatue(-6, 0, Z_CENTER + 10, Math.PI / 4);
+      this.createGuardianStatue(6, 0, Z_CENTER + 10, -Math.PI / 4);
       this.brazierSol = this.createFlameBrazier(5.5, 0, Z_CENTER - 1, "sol", 16347926);
       this.brazierLuna = this.createFlameBrazier(-5.5, 0, Z_CENTER - 1, "luna", 11032055);
       this.createCeremonialAltar(0, 0, Z_CENTER - 1);
       this.createPartitionWall(-7.1, 3.5, -48, 9.8, 7, 0);
       this.createPartitionWall(7.1, 3.5, -48, 9.8, 7, 0);
-      this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0);
+      this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0, false);
       this.game.doors["door3"] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway");
     }
     createHieroglyphWall(x, y, z, width, height, rotY) {
@@ -33378,6 +33381,11 @@ void main() {
       );
       statusLight.position.set(0, h / 2 - 0.4, 0.25);
       group.add(statusLight);
+      const doorTrigger = new Mesh(
+        new BoxGeometry(w, h, 1.2),
+        new MeshBasicMaterial({ visible: false })
+      );
+      group.add(doorTrigger);
       this.scene.add(group);
       const doorObj = {
         group,
@@ -33409,6 +33417,12 @@ void main() {
         doorRef: doorObj
       };
       this.colliders.push(collider);
+      doorTrigger.userData = {
+        type: "vault_door",
+        doorRef: doorObj,
+        label
+      };
+      this.interactables.push(doorTrigger);
       return doorObj;
     }
     createRotatableMirror(x, y, z, initialAngle, label, mirrorId) {
@@ -33519,6 +33533,13 @@ void main() {
               sound.playStoneLocked();
             } else {
               this.puzzleManager.solveEyeOfHorusTablet();
+            }
+          } else if (data.type === "vault_door") {
+            if (data.doorRef && data.doorRef.isOpen) {
+              this.showBannerPopup("GATEWAY OPEN", `${data.label} is unlocked. Step through!`);
+            } else {
+              this.showBannerPopup(`${data.label.toUpperCase()} SEALED`, "This massive reinforced portal is locked. Solve this chamber's puzzle to unlock it!");
+              sound.playStoneLocked();
             }
           }
         }
@@ -33919,6 +33940,7 @@ void main() {
     checkCollisions(x, z) {
       const R = 0.45;
       for (let c of this.colliders) {
+        if (c.hasCollider === false) continue;
         if (c.isDoor && c.doorRef && c.doorRef.isOpen) continue;
         if (c.isPortal && this.architect.exitPortal && this.architect.exitPortal.isOpen) continue;
         if (c.isChasm) {
@@ -33978,6 +34000,12 @@ void main() {
             } else {
               const count = this.state.getKeyCount();
               text = `Master Portal Sealed (${count}/3 Keys Collected \u2014 Requires All 3 Keys)`;
+            }
+          } else if (type === "vault_door") {
+            if (obj.userData.doorRef && obj.userData.doorRef.isOpen) {
+              text = `${obj.userData.label} [Open \u2014 Walk Through]`;
+            } else {
+              text = `${obj.userData.label} (Sealed \u2014 Solve Chamber Puzzle to Unlock)`;
             }
           }
           if (text) {

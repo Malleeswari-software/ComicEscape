@@ -346,6 +346,13 @@ export class EscapeGame3D {
     statusLight.position.set(0, h / 2 - 0.4, 0.25);
     group.add(statusLight);
 
+    // Door interaction trigger
+    const doorTrigger = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, 1.2),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    group.add(doorTrigger);
+
     this.scene.add(group);
 
     const doorObj = {
@@ -374,6 +381,13 @@ export class EscapeGame3D {
       doorRef: doorObj
     };
     this.colliders.push(collider);
+
+    doorTrigger.userData = {
+      type: 'vault_door',
+      doorRef: doorObj,
+      label: label
+    };
+    this.interactables.push(doorTrigger);
 
     return doorObj;
   }
@@ -498,6 +512,13 @@ export class EscapeGame3D {
             sound.playStoneLocked();
           } else {
             this.puzzleManager.solveEyeOfHorusTablet();
+          }
+        } else if (data.type === 'vault_door') {
+          if (data.doorRef && data.doorRef.isOpen) {
+            this.showBannerPopup("GATEWAY OPEN", `${data.label} is unlocked. Step through!`);
+          } else {
+            this.showBannerPopup(`${data.label.toUpperCase()} SEALED`, "This massive reinforced portal is locked. Solve this chamber's puzzle to unlock it!");
+            sound.playStoneLocked();
           }
         }
       }
@@ -986,6 +1007,7 @@ export class EscapeGame3D {
   checkCollisions(x, z) {
     const R = 0.45;
     for (let c of this.colliders) {
+      if (c.hasCollider === false) continue;
       if (c.isDoor && c.doorRef && c.doorRef.isOpen) continue;
       if (c.isPortal && this.architect.exitPortal && this.architect.exitPortal.isOpen) continue;
       // Shadow Chasm check: if player is flying above 2.1m with Antigravity, glide cleanly over!
@@ -1050,6 +1072,12 @@ export class EscapeGame3D {
           } else {
             const count = this.state.getKeyCount();
             text = `Master Portal Sealed (${count}/3 Keys Collected — Requires All 3 Keys)`;
+          }
+        } else if (type === 'vault_door') {
+          if (obj.userData.doorRef && obj.userData.doorRef.isOpen) {
+            text = `${obj.userData.label} [Open — Walk Through]`;
+          } else {
+            text = `${obj.userData.label} (Sealed — Solve Chamber Puzzle to Unlock)`;
           }
         }
 
