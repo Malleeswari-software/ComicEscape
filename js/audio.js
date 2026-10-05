@@ -1368,6 +1368,40 @@ export class SoundEngine {
     } catch (e) {}
   }
 
+  /* ---------------- HOLLOW DECOY KEY TURN SFX ---------------- */
+  playKeyTurnDecoy() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      // 1. Rapid ratcheting metallic clicks as keys rotate
+      for (let i = 0; i < 7; i++) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(520 + i * 90, t + i * 0.07);
+        gain.gain.setValueAtTime(0.42, t + i * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.07 + 0.045);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + i * 0.07);
+        osc.stop(t + i * 0.07 + 0.045);
+      }
+      // 2. Hollow mechanism spin rattle
+      const spin = this.ctx.createOscillator();
+      const sGain = this.ctx.createGain();
+      spin.type = 'sawtooth';
+      spin.frequency.setValueAtTime(280, t + 0.45);
+      spin.frequency.exponentialRampToValueAtTime(70, t + 1.3);
+      sGain.gain.setValueAtTime(0.35, t + 0.45);
+      sGain.gain.exponentialRampToValueAtTime(0.001, t + 1.3);
+      spin.connect(sGain);
+      sGain.connect(this.sfxGain);
+      spin.start(t + 0.45);
+      spin.stop(t + 1.3);
+    } catch (e) {}
+  }
+
   /* ---------------- DRAMATIC PLOT-TWIST REVEAL SFX ---------------- */
   playTwistReveal() {
     this.ensureContext();

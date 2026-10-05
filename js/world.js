@@ -108,6 +108,30 @@ export class WorldArchitect {
     this.scene.add(ceil);
   }
 
+  /* ---------------- SOLID ENCLOSURE WALLS & PARTITIONS ---------------- */
+  createPartitionWall(x, y, z, width, height, rotY = 0) {
+    const wallGeo = new THREE.BoxGeometry(width, height, 0.8);
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: 0x162032,
+      roughness: 0.88,
+      metalness: 0.2
+    });
+    const wall = new THREE.Mesh(wallGeo, wallMat);
+    wall.position.set(x, y, z);
+    wall.rotation.y = rotY;
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    this.scene.add(wall);
+
+    const halfW = (Math.abs(Math.cos(rotY)) * width + Math.abs(Math.sin(rotY)) * 0.8) / 2;
+    const halfD = (Math.abs(Math.sin(rotY)) * width + Math.abs(Math.cos(rotY)) * 0.8) / 2;
+    this.game.colliders.push({
+      minX: x - halfW, maxX: x + halfW,
+      minZ: z - halfD, maxZ: z + halfD
+    });
+    return wall;
+  }
+
   /* ---------------- LEVEL 1: THE FORGOTTEN LIBRARY ---------------- */
   buildLevel1_Library() {
     const H = 6;
@@ -142,7 +166,10 @@ export class WorldArchitect {
     // Ornate Archive Cabinet on North Wall (Housing Key 1)
     this.createArchiveCabinet(6.5, 0, -7.5);
 
-    // Door 1 (Between Library and Observatory)
+    // Door 1 (Between Library and Observatory) - Completely Enclosed by Solid Stone Partition Walls
+    this.createPartitionWall(-6.2, 3.25, -8, 8.0, 6.5, 0); // Left solid wall
+    this.createPartitionWall(6.2, 3.25, -8, 8.0, 6.5, 0);  // Right solid wall
+    this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0);    // Top arch lintel
     this.game.doors['door1'] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal");
   }
 
@@ -365,10 +392,11 @@ export class WorldArchitect {
     group.add(leftDoor);
     group.add(rightDoor);
 
-    // Key 1: Antique Brass Library Key on Cushion
+    // Key 1: Antique Brass Library Key on Cushion (Hidden until solved)
     const key1 = this.createKeyMesh(0xf59e0b, 0xd97706, 'brass');
     key1.position.set(0, 1.5, 0.2);
     key1.scale.set(1.4, 1.4, 1.4);
+    key1.visible = false; // Hidden until solved
     group.add(key1);
     this.libraryKeyGroup = key1;
 
@@ -422,7 +450,10 @@ export class WorldArchitect {
     // Celestial Star Glyph Sensor on North Wall
     this.astralSensor = this.createAstralGlyphSensor(6.0, 2.2, Z_CENTER - 9.6);
 
-    // Door 2 (Between Observatory and Temple)
+    // Door 2 (Between Observatory and Temple) - Completely Enclosed by Solid Stone Partition Walls
+    this.createPartitionWall(-6.2, 3.25, Z_CENTER - 10, 8.0, 6.5, 0); // Left solid wall
+    this.createPartitionWall(6.2, 3.25, Z_CENTER - 10, 8.0, 6.5, 0);  // Right solid wall
+    this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0);    // Top arch lintel
     this.game.doors['door2'] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway");
   }
 
@@ -533,10 +564,11 @@ export class WorldArchitect {
     group.add(ring1);
     group.add(ring2);
 
-    // Key 2: Astral Silver Key inside Vault
+    // Key 2: Astral Silver Key inside Vault (Hidden until solved)
     const key2 = this.createKeyMesh(0x93c5fd, 0x38bdf8, 'silver');
     key2.position.set(0, 1.8, 0);
     key2.scale.set(1.4, 1.4, 1.4);
+    key2.visible = false; // Hidden until solved
     group.add(key2);
     this.observatoryKeyGroup = key2;
 
@@ -622,6 +654,12 @@ export class WorldArchitect {
 
     // Central Ceremonial Altar with Solar-Lunar Glyph
     this.createCeremonialAltar(0, 0, Z_CENTER - 1);
+
+    // Door 3 (Between Temple and Master Portal Sanctuary) - Solid Stone Partition Walls
+    this.createPartitionWall(-7.1, 3.5, -48, 9.8, 7.0, 0); // Left solid wall
+    this.createPartitionWall(7.1, 3.5, -48, 9.8, 7.0, 0);  // Right solid wall
+    this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0);    // Top arch lintel
+    this.game.doors['door3'] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway");
   }
 
   createHieroglyphWall(x, y, z, width, height, rotY) {
@@ -785,10 +823,11 @@ export class WorldArchitect {
     group.add(glyphMesh);
     this.solarLunarGlyph = glyphMesh;
 
-    // Key 3: Obsidian Runic Key inside Altar
+    // Key 3: Obsidian Runic Key inside Altar (Hidden until solved)
     const key3 = this.createKeyMesh(0x1e293b, 0xf59e0b, 'obsidian');
     key3.position.set(0, 0.8, 0);
     key3.scale.set(1.4, 1.4, 1.4);
+    key3.visible = false; // Hidden until solved
     group.add(key3);
     this.templeKeyGroup = key3;
 
@@ -807,6 +846,15 @@ export class WorldArchitect {
   buildFinalExitPortal() {
     const H = 7.0;
     const Z_PORTAL = -56;
+
+    // Sanctuary Side Walls enclosing corridor from Temple Door 3 (Z = -48) to Master Portal (Z = -56)
+    this.createPartitionWall(-6.0, 3.5, -52, 8.0, 7.0, Math.PI / 2); // Left corridor wall
+    this.createPartitionWall(6.0, 3.5, -52, 8.0, 7.0, Math.PI / 2);  // Right corridor wall
+
+    // Sanctuary Back Flanking Walls sealing sides of the portal at Z = -56
+    this.createPartitionWall(-9.0, 3.5, -56, 6.0, 7.0, 0);
+    this.createPartitionWall(9.0, 3.5, -56, 6.0, 7.0, 0);
+
     const group = new THREE.Group();
     group.position.set(0, 0, Z_PORTAL);
 

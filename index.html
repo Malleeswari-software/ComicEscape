@@ -1027,6 +1027,382 @@
       color: #facc15;
       transform: translateY(-1px);
     }
+
+    /* ---------------- CUTSCENE VIDEO CINEMA STYLING ---------------- */
+    @keyframes keySpinHollow {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes keyInsertSlide {
+      0% { transform: translateY(-70px) scale(0.6); opacity: 0; }
+      70% { transform: translateY(0) scale(1.1); opacity: 1; }
+      100% { transform: translateY(0) scale(1.0); opacity: 1; }
+    }
+    @keyframes comicRumble {
+      0%, 100% { transform: translate(0, 0) rotate(-10deg); }
+      20% { transform: translate(-4px, 3px) rotate(-8deg); }
+      40% { transform: translate(4px, -3px) rotate(-12deg); }
+      60% { transform: translate(-3px, 4px) rotate(-9deg); }
+      80% { transform: translate(3px, -2px) rotate(-11deg); }
+    }
+    @keyframes sunburstPulse {
+      0%, 100% { filter: drop-shadow(0 0 15px rgba(34, 197, 94, 0.4)); transform: scale(1); }
+      50% { filter: drop-shadow(0 0 35px rgba(34, 197, 94, 0.9)); transform: scale(1.02); }
+    }
+    @keyframes recBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .cutscene-cinema-box {
+      width: 1040px;
+      max-width: 96vw;
+      background: #090d16;
+      border: 3px solid #facc15;
+      border-radius: 18px;
+      box-shadow: 0 0 60px rgba(250, 204, 21, 0.4), 0 20px 50px rgba(0, 0, 0, 0.95);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .cutscene-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #040711;
+      padding: 10px 18px;
+      border-bottom: 2px solid rgba(250, 204, 21, 0.4);
+    }
+
+    .cutscene-rec-dot {
+      color: #ef4444;
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: 1px;
+      animation: recBlink 1.2s infinite ease-in-out;
+    }
+
+    .cutscene-title-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 11.5px;
+      color: #94a3b8;
+      letter-spacing: 0.8px;
+    }
+
+    .cutscene-skip-btn {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cutscene-skip-btn:hover {
+      background: #e11d48;
+      color: #fff;
+      border-color: #f43f5e;
+    }
+
+    .cutscene-viewport {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: #000;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cutscene-bg-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.6s ease-in-out, transform 8s ease-out;
+      transform: scale(1.02);
+    }
+
+    .cutscene-scanlines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 6px 100%;
+      box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8);
+      z-index: 3;
+    }
+
+    .cutscene-keys-layer {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 36px;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .cutscene-key-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .cutscene-socket-halo {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 3px dashed rgba(250, 204, 21, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.6);
+      box-shadow: 0 0 25px rgba(250, 204, 21, 0.4);
+      position: absolute;
+      top: 5px;
+    }
+    .halo-brass { border-color: #f59e0b; box-shadow: 0 0 25px rgba(245, 158, 11, 0.6); }
+    .halo-silver { border-color: #38bdf8; box-shadow: 0 0 25px rgba(56, 189, 248, 0.6); }
+    .halo-obsidian { border-color: #c084fc; box-shadow: 0 0 25px rgba(192, 132, 252, 0.6); }
+
+    .cutscene-key-img {
+      width: 68px;
+      height: 100px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.9));
+      z-index: 6;
+      transition: transform 0.5s ease-out;
+      opacity: 0;
+    }
+
+    .cutscene-key-img.inserted {
+      animation: keyInsertSlide 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      opacity: 1;
+    }
+
+    .cutscene-key-img.spinning {
+      animation: keySpinHollow 0.75s infinite linear;
+      opacity: 1;
+    }
+
+    .cutscene-key-tag {
+      margin-top: 14px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(250, 204, 21, 0.6);
+      color: #facc15;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      z-index: 7;
+    }
+
+    .cutscene-sfx-burst {
+      position: absolute;
+      top: 28%;
+      right: 18%;
+      font-family: 'Bangers', cursive;
+      font-size: 46px;
+      letter-spacing: 2px;
+      color: #facc15;
+      text-shadow: 3px 3px 0 #000, -2px -2px 0 #ef4444, 0 0 20px rgba(250, 204, 21, 0.8);
+      z-index: 9;
+      pointer-events: none;
+      transform: rotate(-10deg);
+    }
+    .cutscene-sfx-burst.shake {
+      animation: comicRumble 0.35s infinite;
+    }
+
+    .cutscene-edict-banner {
+      position: absolute;
+      inset: 20px;
+      background: rgba(10, 15, 29, 0.92);
+      border: 3px solid #38bdf8;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 8;
+      box-shadow: 0 0 50px rgba(56, 189, 248, 0.5);
+      animation: keyInsertSlide 0.5s ease-out;
+    }
+
+    .edict-headline {
+      font-family: 'Bangers', cursive;
+      font-size: 42px;
+      color: #facc15;
+      letter-spacing: 2px;
+      text-shadow: 2px 2px 0 #000, 0 0 25px rgba(250, 204, 21, 0.9);
+      margin-bottom: 4px;
+    }
+
+    .edict-sub {
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      font-weight: 900;
+      color: #38bdf8;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+
+    .edict-body {
+      font-size: 15px;
+      color: #f1f5f9;
+      line-height: 1.6;
+      max-width: 680px;
+      font-style: italic;
+    }
+
+    .cutscene-dialogue-panel {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #0f172a;
+      border-top: 2px solid rgba(56, 189, 248, 0.3);
+      padding: 14px 20px;
+    }
+
+    .cutscene-avatar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .cutscene-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 2px solid #facc15;
+      background: #1e293b;
+      box-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
+      object-fit: cover;
+    }
+
+    .cutscene-speaker-name {
+      font-size: 11px;
+      font-weight: 900;
+      color: #facc15;
+      letter-spacing: 1px;
+    }
+
+    .cutscene-speech-content {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 10px;
+      padding: 10px 16px;
+      position: relative;
+    }
+
+    .cutscene-phase-badge {
+      font-size: 10px;
+      font-weight: 900;
+      color: #38bdf8;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .cutscene-speech-text {
+      font-size: 14.5px;
+      color: #f8fafc;
+      line-height: 1.45;
+      font-weight: 600;
+    }
+
+    .cutscene-controls-bar {
+      background: #080d1a;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 10px 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cutscene-progress-track {
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .cutscene-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b, #38bdf8, #22c55e);
+      border-radius: 3px;
+      transition: width 0.3s ease-out;
+    }
+
+    .cutscene-chapters-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .cutscene-chapters-list {
+      display: flex;
+      gap: 6px;
+    }
+
+    .cutscene-chap-btn {
+      background: #1e293b;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cutscene-chap-btn.active, .cutscene-chap-btn:hover {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+
+    .cutscene-replay-btn {
+      background: #334155;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cutscene-replay-btn:hover {
+      background: #475569;
+      color: #fff;
+    }
+
+    .cutscene-finish-btn {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      box-shadow: 0 0 25px rgba(34, 197, 94, 0.6);
+      font-size: 13.5px;
+      padding: 8px 18px;
+      animation: sunburstPulse 2s infinite ease-in-out;
+    }
   </style>
 </head>
 <body>
@@ -1305,51 +1681,101 @@
     </div>
   </div>
 
-  <!-- Dramatic Plot-Twist Cutscene Modal -->
-  <div id="twist-modal" class="overlay" style="display: none; z-index: 75;">
-    <div class="comic-wrapper" style="border-color: #facc15; box-shadow: 0 0 40px rgba(250, 204, 21, 0.4); max-width: 920px;">
-      <div class="comic-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #facc15; padding-bottom: 10px; margin-bottom: 16px;">
-        <div>
-          <span style="background: #e11d48; color: #fff; font-weight: 900; padding: 4px 10px; border-radius: 4px; font-size: 12px; letter-spacing: 1px;">CRITICAL PLOT TWIST</span>
-          <h2 style="font-family: 'Cinzel', serif; color: #facc15; font-size: 26px; margin-top: 4px;">THE ARCHITECT'S DECEPTION REVEALED</h2>
+  <!-- Cinematic Animated Plot-Twist Cutscene Video Player -->
+  <div id="twist-modal" class="overlay" style="display: none; z-index: 85; background: rgba(0, 0, 0, 0.94); backdrop-filter: blur(14px);">
+    <div class="cutscene-cinema-box">
+      <!-- Cinema Top Status Bar -->
+      <div class="cutscene-top-bar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="cutscene-rec-dot">● REC</span>
+          <span class="cutscene-title-badge">CINEMATIC SEQUENCE // THE ILLUSION OF THE MASTER KEYS</span>
         </div>
-        <div style="font-size: 28px;">⚡</div>
-      </div>
-
-      <div class="comic-panels-breakdown" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-        <div class="comic-panel-modal" style="background: #fffbeb;">
-          <div class="panel-speech">"Wait! Look into the three keyholes... They're solid granite! There are NO lock tumblers inside!"</div>
-          <div class="panel-burst" style="color: #ef4444;">WHAT?!</div>
-          <div class="panel-caption">PANEL 1: THE HOLLOW FACADE</div>
-        </div>
-
-        <div class="comic-panel-modal" style="background: #fef2f2;">
-          <div class="panel-speech">"The three keys were an ancient psychological trap! Intruders would wander in the dark forever, searching for keys to a door that was never locked!"</div>
-          <div class="panel-burst" style="color: #f59e0b;">DECOYS!</div>
-          <div class="panel-caption">PANEL 2: THE SHADOW TRAP</div>
-        </div>
-
-        <div class="comic-panel-modal" style="background: #f0fdf4;">
-          <div class="panel-speech">"An ancient inscription blazes across the stone: 'FREEDOM REQUIRES NO KEYS. THE PORTAL OPENS TO COURAGE AND LIGHT!'"</div>
-          <div class="panel-burst" style="color: #22c55e;">AWAKEN!</div>
-          <div class="panel-caption">PANEL 3: THE TRUE LAW</div>
-        </div>
-
-        <div class="comic-panel-modal" style="background: #eff6ff;">
-          <div class="panel-speech">"CRRR-RAAACK! The colossal portal responds to your beam! The false locks shatter—the gate is opening on its own!"</div>
-          <div class="panel-burst" style="color: #0284c7;">BREACH!</div>
-          <div class="panel-caption">PANEL 4: FREEDOM PROTOCOL</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="cutscene-timer-display" style="font-family: 'Space Mono', monospace; font-size: 13px; color: #facc15;">00:00 / 00:16</span>
+          <button id="btn-skip-twist" class="cutscene-skip-btn">SKIP CUTSCENE ⏩</button>
         </div>
       </div>
 
-      <div class="uv-cipher-note" style="border-color: #facc15; color: #facc15; background: rgba(250, 204, 21, 0.1); font-size: 15px;">
-        ✨ <strong>THE PLOT TWIST:</strong> The final door opens WITHOUT ANY KEYS! The ancient deception is shattered!
+      <!-- Main Visual Viewport / Screen -->
+      <div id="cutscene-viewport" class="cutscene-viewport">
+        <!-- Visual Backdrop Layer -->
+        <img id="cutscene-bg-img" src="assets/cutscene_key_insert.jpg" class="cutscene-bg-img" alt="Key Insertion Cutscene">
+
+        <!-- Cinematic CRT Scanlines & Vignette -->
+        <div class="cutscene-scanlines"></div>
+
+        <!-- Animated Key Sockets & Keys Layer -->
+        <div id="cutscene-keys-layer" class="cutscene-keys-layer">
+          <div class="cutscene-key-slot" id="cutscene-slot-1">
+            <div class="cutscene-socket-halo halo-brass"></div>
+            <img src="assets/key_brass_cut.png" class="cutscene-key-img key-brass" id="cutscene-key-1" alt="Brass Key">
+            <div class="cutscene-key-tag">KEY I: BRASS</div>
+          </div>
+          <div class="cutscene-key-slot" id="cutscene-slot-2">
+            <div class="cutscene-socket-halo halo-silver"></div>
+            <img src="assets/key_silver_cut.png" class="cutscene-key-img key-silver" id="cutscene-key-2" alt="Silver Key">
+            <div class="cutscene-key-tag">KEY II: SILVER</div>
+          </div>
+          <div class="cutscene-key-slot" id="cutscene-slot-3">
+            <div class="cutscene-socket-halo halo-obsidian"></div>
+            <img src="assets/key_obsidian_cut.png" class="cutscene-key-img key-obsidian" id="cutscene-key-3" alt="Obsidian Key">
+            <div class="cutscene-key-tag">KEY III: OBSIDIAN</div>
+          </div>
+        </div>
+
+        <!-- Comic SFX Bursts -->
+        <div id="cutscene-sfx-burst" class="cutscene-sfx-burst" style="display: none;">CLINK!</div>
+
+        <!-- Glowing Ancient Runic Edict Overlay (Phase 3) -->
+        <div id="cutscene-edict-banner" class="cutscene-edict-banner" style="display: none;">
+          <div class="edict-headline">⚡ THE KEYS WERE DECOYS! ⚡</div>
+          <div class="edict-sub">THE FINAL DOOR WAS NEVER LOCKED!</div>
+          <div class="edict-body">
+            "The keys were forged as a test of spirit and resolve. The sanctuary opens not to metal or bone, but to the fearless who walk forward into the dawn!"
+          </div>
+        </div>
+
+        <!-- Sunburst Radiance Overlay (Phase 4) -->
+        <div id="cutscene-sunburst" class="cutscene-sunburst" style="display: none;"></div>
       </div>
 
-      <div style="text-align: center; margin-top: 14px;">
-        <button class="btn-primary" id="btn-breach-twist" style="background: #22c55e; font-size: 19px; box-shadow: 0 0 25px rgba(34, 197, 94, 0.5);">
-          STEP FORWARD • BREACH INTO THE LIGHT
-        </button>
+      <!-- Dialogue & Subtitle Panel -->
+      <div class="cutscene-dialogue-panel">
+        <div class="cutscene-avatar-wrap">
+          <img id="cutscene-avatar-img" src="assets/maya_portrait_trans.png?v=5" class="cutscene-avatar" alt="Character Portrait">
+          <div id="cutscene-speaker-name" class="cutscene-speaker-name">MAYA</div>
+        </div>
+        <div class="cutscene-speech-content">
+          <div class="cutscene-phase-badge" id="cutscene-phase-badge">PHASE 1: KEY PLACEMENT</div>
+          <div id="cutscene-speech-text" class="cutscene-speech-text">
+            "I've placed all three keys into the triumvirate sockets... Ready to turn the mechanism!"
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Control & Chapter Navigation Bar -->
+      <div class="cutscene-controls-bar">
+        <!-- Progress Bar -->
+        <div class="cutscene-progress-track" id="cutscene-progress-track">
+          <div class="cutscene-progress-fill" id="cutscene-progress-fill" style="width: 0%;"></div>
+        </div>
+
+        <!-- Chapter Tabs & Action Buttons -->
+        <div class="cutscene-chapters-row">
+          <div class="cutscene-chapters-list">
+            <button class="cutscene-chap-btn active" data-phase="1">1. Sockets</button>
+            <button class="cutscene-chap-btn" data-phase="2">2. Hollow Decoy</button>
+            <button class="cutscene-chap-btn" data-phase="3">3. The Inscription</button>
+            <button class="cutscene-chap-btn" data-phase="4">4. Freedom Dawn</button>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="btn-replay-cutscene" class="cutscene-replay-btn">↺ Replay</button>
+            <button id="btn-breach-twist" class="btn-primary cutscene-finish-btn">
+              STEP INTO THE LIGHT • VICTORY ➔
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1402,6 +1828,6 @@
   </div>
 </div>
 
-<script src="dist/bundle.js?v=10"></script>
+<script src="dist/bundle.js?v=11"></script>
 </body>
 </html>

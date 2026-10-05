@@ -135,10 +135,13 @@ export class UIController {
     const breachBtn = document.getElementById('btn-breach-twist');
     if (breachBtn) {
       breachBtn.addEventListener('click', () => {
+        this.clearCutsceneTimeouts();
         if (this.twistModal) this.twistModal.style.display = 'none';
         this.game.triggerCinematicVictory();
       });
     }
+
+    this.initCutscene();
 
     // Pause Menu actions
     const resumeBtn = document.getElementById('btn-resume-game');
@@ -502,11 +505,198 @@ export class UIController {
     }
   }
 
-  /* ---------------- DRAMATIC PLOT TWIST CUTSCENE ---------------- */
+  /* ---------------- DRAMATIC PLOT TWIST CUTSCENE CONTROLLER ---------------- */
+  initCutscene() {
+    this.cutsceneBgImg = document.getElementById('cutscene-bg-img');
+    this.cutsceneTimerDisplay = document.getElementById('cutscene-timer-display');
+    this.cutsceneKeysLayer = document.getElementById('cutscene-keys-layer');
+    this.cutsceneKey1 = document.getElementById('cutscene-key-1');
+    this.cutsceneKey2 = document.getElementById('cutscene-key-2');
+    this.cutsceneKey3 = document.getElementById('cutscene-key-3');
+    this.cutsceneSfxBurst = document.getElementById('cutscene-sfx-burst');
+    this.cutsceneEdictBanner = document.getElementById('cutscene-edict-banner');
+    this.cutsceneAvatarImg = document.getElementById('cutscene-avatar-img');
+    this.cutsceneSpeakerName = document.getElementById('cutscene-speaker-name');
+    this.cutscenePhaseBadge = document.getElementById('cutscene-phase-badge');
+    this.cutsceneSpeechText = document.getElementById('cutscene-speech-text');
+    this.cutsceneProgressFill = document.getElementById('cutscene-progress-fill');
+    this.cutsceneTimeouts = [];
+
+    const skipBtn = document.getElementById('btn-skip-twist');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        this.clearCutsceneTimeouts();
+        if (this.twistModal) this.twistModal.style.display = 'none';
+        this.game.triggerCinematicVictory();
+      });
+    }
+
+    const replayBtn = document.getElementById('btn-replay-cutscene');
+    if (replayBtn) {
+      replayBtn.addEventListener('click', () => {
+        this.playCutscenePhase(1);
+      });
+    }
+
+    const chapBtns = document.querySelectorAll('.cutscene-chap-btn');
+    chapBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ph = parseInt(btn.dataset.phase, 10);
+        this.playCutscenePhase(ph);
+      });
+    });
+  }
+
+  clearCutsceneTimeouts() {
+    if (this.cutsceneTimeouts) {
+      this.cutsceneTimeouts.forEach(t => clearTimeout(t));
+      this.cutsceneTimeouts = [];
+    }
+  }
+
   showTwistCutscene() {
     this.game.controls.unlock();
+    if (!this.cutsceneBgImg) {
+      this.initCutscene();
+    }
+    this.clearCutsceneTimeouts();
+
+    // Set protagonist profile and portrait
+    const gender = this.state.state.playerGender || 'girl';
+    const isGirl = gender === 'female' || gender === 'girl';
+    if (this.cutsceneAvatarImg) {
+      this.cutsceneAvatarImg.src = isGirl ? 'assets/maya_portrait_trans.png?v=5' : 'assets/leo_portrait_trans.png?v=5';
+    }
+    if (this.cutsceneSpeakerName) {
+      this.cutsceneSpeakerName.innerText = isGirl ? 'MAYA [FIELD OPERATIVE]' : 'LEO [CRYPTOLOGIST]';
+    }
+
     if (this.twistModal) {
       this.twistModal.style.display = 'flex';
+    }
+
+    this.playCutscenePhase(1);
+  }
+
+  playCutscenePhase(phase) {
+    this.clearCutsceneTimeouts();
+
+    // Update active chapter tab button
+    const chapBtns = document.querySelectorAll('.cutscene-chap-btn');
+    chapBtns.forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.phase, 10) === phase);
+    });
+
+    const triggerSfx = (text, shake = false, duration = 1200) => {
+      if (!this.cutsceneSfxBurst) return;
+      this.cutsceneSfxBurst.innerText = text;
+      this.cutsceneSfxBurst.className = `cutscene-sfx-burst ${shake ? 'shake' : ''}`;
+      this.cutsceneSfxBurst.style.display = 'block';
+      this.cutsceneTimeouts.push(setTimeout(() => {
+        if (this.cutsceneSfxBurst) this.cutsceneSfxBurst.style.display = 'none';
+      }, duration));
+    };
+
+    if (phase === 1) {
+      // Phase 1: Key Placement into Sockets
+      if (this.cutsceneBgImg) this.cutsceneBgImg.src = 'assets/cutscene_key_insert.jpg';
+      if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = 'flex';
+      if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = 'none';
+      if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = 'PHASE 1: KEY PLACEMENT';
+      if (this.cutsceneSpeechText) {
+        this.cutsceneSpeechText.innerText = '“I have all three keys: Brass for the Mind, Silver for the Stars, Obsidian for the Shadow... Slotting them into the triumvirate locks now!”';
+      }
+      if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = '25%';
+      if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = '00:02 / 00:16';
+
+      // Reset and animate keys sliding in sequentially
+      [this.cutsceneKey1, this.cutsceneKey2, this.cutsceneKey3].forEach(k => {
+        if (k) k.className = 'cutscene-key-img';
+      });
+
+      this.cutsceneTimeouts.push(setTimeout(() => {
+        if (this.cutsceneKey1) this.cutsceneKey1.classList.add('inserted');
+        sound.playKeyPickup('brass');
+        triggerSfx('CLINK!', false, 900);
+      }, 400));
+
+      this.cutsceneTimeouts.push(setTimeout(() => {
+        if (this.cutsceneKey2) this.cutsceneKey2.classList.add('inserted');
+        sound.playKeyPickup('silver');
+        triggerSfx('CLANG!', false, 900);
+      }, 1400));
+
+      this.cutsceneTimeouts.push(setTimeout(() => {
+        if (this.cutsceneKey3) this.cutsceneKey3.classList.add('inserted');
+        sound.playKeyPickup('obsidian');
+        triggerSfx('ENGAGED!', false, 1100);
+      }, 2400));
+
+      // Advance to Phase 2 automatically after 4.2s
+      this.cutsceneTimeouts.push(setTimeout(() => {
+        this.playCutscenePhase(2);
+      }, 4200));
+
+    } else if (phase === 2) {
+      // Phase 2: Hollow Ratchet - The Decoy Twist!
+      if (this.cutsceneBgImg) this.cutsceneBgImg.src = 'assets/cutscene_key_insert.jpg';
+      if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = 'flex';
+      if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = 'none';
+      if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = 'PHASE 2: THE HOLLOW DECOY (THE TWIST)';
+      if (this.cutsceneSpeechText) {
+        this.cutsceneSpeechText.innerText = '“WAIT... WHAT?! The keys are just spinning freely in circles! Look into the keyholes... there are NO LOCK BOLTS! There are NO TUMBLERS! The locks are completely hollow inside!”';
+      }
+      if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = '50%';
+      if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = '00:06 / 00:16';
+
+      // Start keys spinning hollowly
+      [this.cutsceneKey1, this.cutsceneKey2, this.cutsceneKey3].forEach(k => {
+        if (k) k.className = 'cutscene-key-img spinning';
+      });
+
+      sound.playKeyTurnDecoy();
+      triggerSfx('RATCHET... WHIRRR?!', true, 3000);
+
+      // Advance to Phase 3 automatically after 4.8s
+      this.cutsceneTimeouts.push(setTimeout(() => {
+        this.playCutscenePhase(3);
+      }, 4800));
+
+    } else if (phase === 3) {
+      // Phase 3: The Ancient Rune Inscription
+      if (this.cutsceneBgImg) this.cutsceneBgImg.src = 'assets/cutscene_key_insert.jpg';
+      if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = 'flex';
+      if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = 'flex';
+      if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = 'PHASE 3: THE ANCIENT REVELATION';
+      if (this.cutsceneSpeechText) {
+        this.cutsceneSpeechText.innerText = '“Look at the arch! Ancient runes are blazing across the rock: ‘THE KEYS WERE DECOYS. THIS DOOR WAS NEVER LOCKED!’ All this time... we were searching in the dark, when the door was waiting to be opened!”';
+      }
+      if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = '75%';
+      if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = '00:11 / 00:16';
+
+      sound.playTwistReveal();
+      triggerSfx('RUNES AWAKEN!', false, 2500);
+
+      // Advance to Phase 4 automatically after 5.0s
+      this.cutsceneTimeouts.push(setTimeout(() => {
+        this.playCutscenePhase(4);
+      }, 5000));
+
+    } else if (phase === 4) {
+      // Phase 4: Push Into Sunlight & Freedom
+      if (this.cutsceneBgImg) this.cutsceneBgImg.src = 'assets/cutscene_door_open.jpg';
+      if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = 'none';
+      if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = 'none';
+      if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = 'PHASE 4: FREEDOM DAWN';
+      if (this.cutsceneSpeechText) {
+        this.cutsceneSpeechText.innerText = '“It yields to a simple push! The heavy granite slides apart effortlessly... The morning sunlight! WE ARE FREE!”';
+      }
+      if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = '100%';
+      if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = '00:16 / 00:16';
+
+      sound.playStoneGrinding(3.6, 0.7, 1.25);
+      sound.playWallCracking();
+      triggerSfx('CREEEAAAK!!', true, 3000);
     }
   }
 

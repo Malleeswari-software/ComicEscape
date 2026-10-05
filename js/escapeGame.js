@@ -526,6 +526,9 @@ export class EscapeGame3D {
       this.architect.libraryCabinet.leftDoor.rotation.y = -Math.PI / 1.8;
       this.architect.libraryCabinet.rightDoor.rotation.y = Math.PI / 1.8;
       this.architect.libraryCabinet.isOpen = true;
+      if (!this.state.hasKey('libraryKey') && this.architect.libraryKeyGroup) {
+        this.architect.libraryKeyGroup.visible = true;
+      }
     }
   }
 
@@ -550,6 +553,9 @@ export class EscapeGame3D {
   openObservatoryVault() {
     if (this.architect.armillaryVault) {
       this.architect.armillaryVault.isOpen = true;
+      if (!this.state.hasKey('observatoryKey') && this.architect.observatoryKeyGroup) {
+        this.architect.observatoryKeyGroup.visible = true;
+      }
     }
   }
 
@@ -575,6 +581,9 @@ export class EscapeGame3D {
       this.architect.templeAltar.glyphMat.emissive.setHex(0xf59e0b);
       this.architect.templeAltar.glyphMat.emissiveIntensity = 1.0;
       this.architect.templeAltar.isOpen = true;
+      if (!this.state.hasKey('templeKey') && this.architect.templeKeyGroup) {
+        this.architect.templeKeyGroup.visible = true;
+      }
     }
   }
 
@@ -811,6 +820,7 @@ export class EscapeGame3D {
     if (s.puzzles.brazierLuna) this.setBrazierFlame('luna', s.puzzles.brazierLuna);
     if (s.puzzles.templeBalanced) this.openTempleAltar();
     if (s.puzzles.templeKeyCollected) this.hideTempleKeyMesh();
+    if (s.keys.templeKey) this.openDoor('door3');
 
     sound.init();
     sound.startBackgroundMusic();
@@ -1001,13 +1011,51 @@ export class EscapeGame3D {
     raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
     const intersects = raycaster.intersectObjects(this.interactables, true);
 
-    if (intersects.length > 0 && intersects[0].distance < 4.5) {
+    if (intersects.length > 0 && intersects[0].distance < 4.8) {
       let obj = intersects[0].object;
       while (obj && !obj.userData.type && obj.parent) obj = obj.parent;
-      if (obj && obj.userData.prompt) {
-        promptEl.innerText = obj.userData.prompt;
-        promptEl.style.display = 'block';
-        return;
+      if (obj && obj.userData) {
+        let text = obj.userData.prompt;
+        const type = obj.userData.type;
+
+        if (type === 'archive_cabinet') {
+          if (this.state.hasKey('libraryKey')) {
+            text = "Ornate Archive Cabinet (Empty - Key 1 Acquired)";
+          } else if (this.state.state.puzzles.libraryCabinetUnlocked) {
+            text = "[E] Take Whispering Key (Antique Brass Key Ⅰ)";
+          } else {
+            text = "[E] Ornate Archive Cabinet (Locked — Solve 3 Book Pedestals)";
+          }
+        } else if (type === 'armillary_vault') {
+          if (this.state.hasKey('observatoryKey')) {
+            text = "Armillary Vault (Empty - Key 2 Acquired)";
+          } else if (this.state.state.puzzles.observatoryAligned) {
+            text = "[E] Take Astral Key (Silver Observatory Key Ⅱ)";
+          } else {
+            text = "[E] Armillary Vault (Sealed — Align Mirrors & Laser to Astral Sensor)";
+          }
+        } else if (type === 'temple_altar') {
+          if (this.state.hasKey('templeKey')) {
+            text = "Ceremonial Altar (Empty - Key 3 Acquired)";
+          } else if (this.state.state.puzzles.templeBalanced) {
+            text = "[E] Take Ancient Key (Obsidian Runic Key Ⅲ)";
+          } else {
+            text = "[E] Ceremonial Altar (Sealed — Balance Sun & Moon Flames to 50%)";
+          }
+        } else if (type === 'final_portal') {
+          if (this.state.hasAllKeys()) {
+            text = "[E] Place 3 Ancient Keys & Open Master Portal";
+          } else {
+            const count = this.state.getKeyCount();
+            text = `Master Portal Sealed (${count}/3 Keys Collected — Requires All 3 Keys)`;
+          }
+        }
+
+        if (text) {
+          promptEl.innerText = text;
+          promptEl.style.display = 'block';
+          return;
+        }
       }
     }
     promptEl.style.display = 'none';

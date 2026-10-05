@@ -30340,6 +30340,38 @@ void main() {
       } catch (e) {
       }
     }
+    /* ---------------- HOLLOW DECOY KEY TURN SFX ---------------- */
+    playKeyTurnDecoy() {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        for (let i = 0; i < 7; i++) {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(520 + i * 90, t + i * 0.07);
+          gain.gain.setValueAtTime(0.42, t + i * 0.07);
+          gain.gain.exponentialRampToValueAtTime(1e-3, t + i * 0.07 + 0.045);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(t + i * 0.07);
+          osc.stop(t + i * 0.07 + 0.045);
+        }
+        const spin = this.ctx.createOscillator();
+        const sGain = this.ctx.createGain();
+        spin.type = "sawtooth";
+        spin.frequency.setValueAtTime(280, t + 0.45);
+        spin.frequency.exponentialRampToValueAtTime(70, t + 1.3);
+        sGain.gain.setValueAtTime(0.35, t + 0.45);
+        sGain.gain.exponentialRampToValueAtTime(1e-3, t + 1.3);
+        spin.connect(sGain);
+        sGain.connect(this.sfxGain);
+        spin.start(t + 0.45);
+        spin.stop(t + 1.3);
+      } catch (e) {
+      }
+    }
     /* ---------------- DRAMATIC PLOT-TWIST REVEAL SFX ---------------- */
     playTwistReveal() {
       this.ensureContext();
@@ -31142,6 +31174,30 @@ void main() {
       ceil.rotation.x = Math.PI / 2;
       this.scene.add(ceil);
     }
+    /* ---------------- SOLID ENCLOSURE WALLS & PARTITIONS ---------------- */
+    createPartitionWall(x, y, z, width, height, rotY = 0) {
+      const wallGeo = new BoxGeometry(width, height, 0.8);
+      const wallMat = new MeshStandardMaterial({
+        color: 1450034,
+        roughness: 0.88,
+        metalness: 0.2
+      });
+      const wall = new Mesh(wallGeo, wallMat);
+      wall.position.set(x, y, z);
+      wall.rotation.y = rotY;
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      this.scene.add(wall);
+      const halfW = (Math.abs(Math.cos(rotY)) * width + Math.abs(Math.sin(rotY)) * 0.8) / 2;
+      const halfD = (Math.abs(Math.sin(rotY)) * width + Math.abs(Math.cos(rotY)) * 0.8) / 2;
+      this.game.colliders.push({
+        minX: x - halfW,
+        maxX: x + halfW,
+        minZ: z - halfD,
+        maxZ: z + halfD
+      });
+      return wall;
+    }
     /* ---------------- LEVEL 1: THE FORGOTTEN LIBRARY ---------------- */
     buildLevel1_Library() {
       const H = 6;
@@ -31164,6 +31220,9 @@ void main() {
       this.createReadingTable(0, 0, 1);
       this.createFloatingBooks(0, 2.4, 1);
       this.createArchiveCabinet(6.5, 0, -7.5);
+      this.createPartitionWall(-6.2, 3.25, -8, 8, 6.5, 0);
+      this.createPartitionWall(6.2, 3.25, -8, 8, 6.5, 0);
+      this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0);
       this.game.doors["door1"] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal");
     }
     createBookshelfRow(x, y, z, length, height, rotY) {
@@ -31341,6 +31400,7 @@ void main() {
       const key1 = this.createKeyMesh(16096779, 14251782, "brass");
       key1.position.set(0, 1.5, 0.2);
       key1.scale.set(1.4, 1.4, 1.4);
+      key1.visible = false;
       group.add(key1);
       this.libraryKeyGroup = key1;
       const trigger = new Mesh(new BoxGeometry(2, 2, 1.4), new MeshBasicMaterial({ visible: false }));
@@ -31378,6 +31438,9 @@ void main() {
       this.mirrorBeta = this.game.createRotatableMirror(5.5, 0, Z_CENTER - 4, Math.PI / 4, "Mirror Beta", "beta");
       this.createArmillaryVault(0, 0, Z_CENTER - 4);
       this.astralSensor = this.createAstralGlyphSensor(6, 2.2, Z_CENTER - 9.6);
+      this.createPartitionWall(-6.2, 3.25, Z_CENTER - 10, 8, 6.5, 0);
+      this.createPartitionWall(6.2, 3.25, Z_CENTER - 10, 8, 6.5, 0);
+      this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0);
       this.game.doors["door2"] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway");
     }
     createStarChartWall(x, y, z, width, height, rotY) {
@@ -31475,6 +31538,7 @@ void main() {
       const key2 = this.createKeyMesh(9684477, 3718648, "silver");
       key2.position.set(0, 1.8, 0);
       key2.scale.set(1.4, 1.4, 1.4);
+      key2.visible = false;
       group.add(key2);
       this.observatoryKeyGroup = key2;
       ped.userData = {
@@ -31544,6 +31608,10 @@ void main() {
       this.brazierSol = this.createFlameBrazier(5.5, 0, Z_CENTER - 1, "sol", 16347926);
       this.brazierLuna = this.createFlameBrazier(-5.5, 0, Z_CENTER - 1, "luna", 11032055);
       this.createCeremonialAltar(0, 0, Z_CENTER - 1);
+      this.createPartitionWall(-7.1, 3.5, -48, 9.8, 7, 0);
+      this.createPartitionWall(7.1, 3.5, -48, 9.8, 7, 0);
+      this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0);
+      this.game.doors["door3"] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway");
     }
     createHieroglyphWall(x, y, z, width, height, rotY) {
       const hCanvas = document.createElement("canvas");
@@ -31671,6 +31739,7 @@ void main() {
       const key3 = this.createKeyMesh(1976635, 16096779, "obsidian");
       key3.position.set(0, 0.8, 0);
       key3.scale.set(1.4, 1.4, 1.4);
+      key3.visible = false;
       group.add(key3);
       this.templeKeyGroup = key3;
       altar.userData = {
@@ -31686,6 +31755,10 @@ void main() {
     buildFinalExitPortal() {
       const H = 7;
       const Z_PORTAL = -56;
+      this.createPartitionWall(-6, 3.5, -52, 8, 7, Math.PI / 2);
+      this.createPartitionWall(6, 3.5, -52, 8, 7, Math.PI / 2);
+      this.createPartitionWall(-9, 3.5, -56, 6, 7, 0);
+      this.createPartitionWall(9, 3.5, -56, 6, 7, 0);
       const group = new Group();
       group.position.set(0, 0, Z_PORTAL);
       const archMat = new MeshStandardMaterial({ color: 988970, roughness: 0.9, metalness: 0.3 });
@@ -32245,62 +32318,51 @@ void main() {
       this.game.showBannerPopup("ANCIENT KEY ACQUIRED!", "Proceed to the Master Exit Portal on the North Wall to investigate!");
     }
     /* ---------------- ANTIGRAVITY RELIC PUZZLE SOLVERS ---------------- */
+    /* ---------------- ANTIGRAVITY RELIC DISCOVERIES (LORE & CLUES) ---------------- */
     solveCelestialGrimoire() {
       this.state.state.gravitonSecrets.library = true;
+      this.state.save();
       sound.playGravitonPickup();
       sound.playSingingBowl(528, 3.5);
-      this.state.state.puzzles.libraryBooks = ["falcon", "serpent", "wolf"];
-      this.state.save();
-      [0, 1, 2].forEach((idx) => {
-        this.game.updateLecternVisuals(idx, this.state.state.puzzles.libraryBooks[idx]);
-      });
-      this.solveLibraryPuzzle();
       this.game.showBannerPopup(
         "\u{1F31F} CELESTIAL GRIMOIRE DECIPHERED!",
-        "Antigravity Flight achieved! The sacred sequence [Falcon \u2794 Serpent \u2794 Wolf] is inscribed!"
+        "Sacred Tome Inscription: 'Falcon leads the hunt, Serpent slithers beneath, Wolf howls at the moon.' (Falcon \u2794 Serpent \u2794 Wolf)"
       );
     }
     solveAstralGravitonPrism() {
       this.state.state.gravitonSecrets.observatory = true;
-      sound.playGravitonPickup();
-      this.state.state.puzzles.mirrorAlphaAngle = 45;
-      this.state.state.puzzles.mirrorBetaAngle = 135;
       this.state.save();
-      this.game.setMirrorAngle("alpha", 45);
-      this.game.setMirrorAngle("beta", 135);
-      if (this.game.architect.astralSensor) {
-        this.game.architect.astralSensor.hit();
-        this.game.architect.astralSensor.hit();
-        this.game.architect.astralSensor.hit();
-      }
-      this.solveObservatoryPuzzle();
+      sound.playGravitonPickup();
+      sound.playSingingBowl(432, 3.5);
       this.game.showBannerPopup(
         "\u2728 ASTRAL GRAVITON PRISM HARMONIZED!",
-        "Zero-G alignment successful! Starlight vectors refracted directly into the Celestial Sensor!"
+        "Starlight Vector Decoded: Set Mirror Alpha to 45\xB0 and Mirror Beta to 135\xB0, then aim your Laser at Alpha to charge the Astral Sensor!"
       );
     }
     solveEyeOfHorusTablet() {
       this.state.state.gravitonSecrets.temple = true;
-      sound.playGravitonPickup();
-      this.state.state.puzzles.brazierSol = 50;
-      this.state.state.puzzles.brazierLuna = 50;
       this.state.save();
-      this.game.setBrazierFlame("sol", 50);
-      this.game.setBrazierFlame("luna", 50);
-      this.solveTemplePuzzle();
+      sound.playGravitonPickup();
+      sound.playSingingBowl(396, 3.5);
       this.game.showBannerPopup(
         "\u{1F441}\uFE0F EYE OF HORUS CHANNELLED!",
-        "Sacred Antigravity Seal engaged! Solar and Lunar fires locked in harmonic 50/50 equilibrium!"
+        "Sacred Balance Prophecy: 'When Sun and Moon cast equal shadow at 50%, the veil of obsidian shall open.'"
       );
     }
     /* ---------------- MASTER EXIT PORTAL: DRAMATIC PLOT TWIST ---------------- */
     triggerFinalExit() {
+      if (!this.state.hasAllKeys()) {
+        const count = this.state.getKeyCount();
+        sound.playStoneLocked();
+        this.game.showBannerPopup(
+          "COLOSSAL PORTAL SEALED",
+          `Requires all 3 Ancient Keys to engage mechanism! You currently hold ${count}/3 keys.`
+        );
+        return;
+      }
       if (this.state.state.puzzles.exitPortalUnlocked) return;
       this.state.state.puzzles.exitPortalUnlocked = true;
       this.state.save();
-      sound.playWallCracking();
-      sound.playStoneGrinding(3.5);
-      sound.playTwistReveal();
       this.game.ui.showTwistCutscene();
     }
   };
@@ -32406,10 +32468,12 @@ void main() {
       const breachBtn = document.getElementById("btn-breach-twist");
       if (breachBtn) {
         breachBtn.addEventListener("click", () => {
+          this.clearCutsceneTimeouts();
           if (this.twistModal) this.twistModal.style.display = "none";
           this.game.triggerCinematicVictory();
         });
       }
+      this.initCutscene();
       const resumeBtn = document.getElementById("btn-resume-game");
       if (resumeBtn) resumeBtn.addEventListener("click", () => this.togglePauseMenu(false));
       const restartBtn = document.getElementById("btn-restart-game");
@@ -32714,11 +32778,161 @@ void main() {
         }
       }
     }
-    /* ---------------- DRAMATIC PLOT TWIST CUTSCENE ---------------- */
+    /* ---------------- DRAMATIC PLOT TWIST CUTSCENE CONTROLLER ---------------- */
+    initCutscene() {
+      this.cutsceneBgImg = document.getElementById("cutscene-bg-img");
+      this.cutsceneTimerDisplay = document.getElementById("cutscene-timer-display");
+      this.cutsceneKeysLayer = document.getElementById("cutscene-keys-layer");
+      this.cutsceneKey1 = document.getElementById("cutscene-key-1");
+      this.cutsceneKey2 = document.getElementById("cutscene-key-2");
+      this.cutsceneKey3 = document.getElementById("cutscene-key-3");
+      this.cutsceneSfxBurst = document.getElementById("cutscene-sfx-burst");
+      this.cutsceneEdictBanner = document.getElementById("cutscene-edict-banner");
+      this.cutsceneAvatarImg = document.getElementById("cutscene-avatar-img");
+      this.cutsceneSpeakerName = document.getElementById("cutscene-speaker-name");
+      this.cutscenePhaseBadge = document.getElementById("cutscene-phase-badge");
+      this.cutsceneSpeechText = document.getElementById("cutscene-speech-text");
+      this.cutsceneProgressFill = document.getElementById("cutscene-progress-fill");
+      this.cutsceneTimeouts = [];
+      const skipBtn = document.getElementById("btn-skip-twist");
+      if (skipBtn) {
+        skipBtn.addEventListener("click", () => {
+          this.clearCutsceneTimeouts();
+          if (this.twistModal) this.twistModal.style.display = "none";
+          this.game.triggerCinematicVictory();
+        });
+      }
+      const replayBtn = document.getElementById("btn-replay-cutscene");
+      if (replayBtn) {
+        replayBtn.addEventListener("click", () => {
+          this.playCutscenePhase(1);
+        });
+      }
+      const chapBtns = document.querySelectorAll(".cutscene-chap-btn");
+      chapBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const ph = parseInt(btn.dataset.phase, 10);
+          this.playCutscenePhase(ph);
+        });
+      });
+    }
+    clearCutsceneTimeouts() {
+      if (this.cutsceneTimeouts) {
+        this.cutsceneTimeouts.forEach((t) => clearTimeout(t));
+        this.cutsceneTimeouts = [];
+      }
+    }
     showTwistCutscene() {
       this.game.controls.unlock();
+      if (!this.cutsceneBgImg) {
+        this.initCutscene();
+      }
+      this.clearCutsceneTimeouts();
+      const gender = this.state.state.playerGender || "girl";
+      const isGirl = gender === "female" || gender === "girl";
+      if (this.cutsceneAvatarImg) {
+        this.cutsceneAvatarImg.src = isGirl ? "assets/maya_portrait_trans.png?v=5" : "assets/leo_portrait_trans.png?v=5";
+      }
+      if (this.cutsceneSpeakerName) {
+        this.cutsceneSpeakerName.innerText = isGirl ? "MAYA [FIELD OPERATIVE]" : "LEO [CRYPTOLOGIST]";
+      }
       if (this.twistModal) {
         this.twistModal.style.display = "flex";
+      }
+      this.playCutscenePhase(1);
+    }
+    playCutscenePhase(phase) {
+      this.clearCutsceneTimeouts();
+      const chapBtns = document.querySelectorAll(".cutscene-chap-btn");
+      chapBtns.forEach((b) => {
+        b.classList.toggle("active", parseInt(b.dataset.phase, 10) === phase);
+      });
+      const triggerSfx = (text, shake = false, duration = 1200) => {
+        if (!this.cutsceneSfxBurst) return;
+        this.cutsceneSfxBurst.innerText = text;
+        this.cutsceneSfxBurst.className = `cutscene-sfx-burst ${shake ? "shake" : ""}`;
+        this.cutsceneSfxBurst.style.display = "block";
+        this.cutsceneTimeouts.push(setTimeout(() => {
+          if (this.cutsceneSfxBurst) this.cutsceneSfxBurst.style.display = "none";
+        }, duration));
+      };
+      if (phase === 1) {
+        if (this.cutsceneBgImg) this.cutsceneBgImg.src = "assets/cutscene_key_insert.jpg";
+        if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = "flex";
+        if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = "none";
+        if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = "PHASE 1: KEY PLACEMENT";
+        if (this.cutsceneSpeechText) {
+          this.cutsceneSpeechText.innerText = "\u201CI have all three keys: Brass for the Mind, Silver for the Stars, Obsidian for the Shadow... Slotting them into the triumvirate locks now!\u201D";
+        }
+        if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = "25%";
+        if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = "00:02 / 00:16";
+        [this.cutsceneKey1, this.cutsceneKey2, this.cutsceneKey3].forEach((k) => {
+          if (k) k.className = "cutscene-key-img";
+        });
+        this.cutsceneTimeouts.push(setTimeout(() => {
+          if (this.cutsceneKey1) this.cutsceneKey1.classList.add("inserted");
+          sound.playKeyPickup("brass");
+          triggerSfx("CLINK!", false, 900);
+        }, 400));
+        this.cutsceneTimeouts.push(setTimeout(() => {
+          if (this.cutsceneKey2) this.cutsceneKey2.classList.add("inserted");
+          sound.playKeyPickup("silver");
+          triggerSfx("CLANG!", false, 900);
+        }, 1400));
+        this.cutsceneTimeouts.push(setTimeout(() => {
+          if (this.cutsceneKey3) this.cutsceneKey3.classList.add("inserted");
+          sound.playKeyPickup("obsidian");
+          triggerSfx("ENGAGED!", false, 1100);
+        }, 2400));
+        this.cutsceneTimeouts.push(setTimeout(() => {
+          this.playCutscenePhase(2);
+        }, 4200));
+      } else if (phase === 2) {
+        if (this.cutsceneBgImg) this.cutsceneBgImg.src = "assets/cutscene_key_insert.jpg";
+        if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = "flex";
+        if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = "none";
+        if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = "PHASE 2: THE HOLLOW DECOY (THE TWIST)";
+        if (this.cutsceneSpeechText) {
+          this.cutsceneSpeechText.innerText = "\u201CWAIT... WHAT?! The keys are just spinning freely in circles! Look into the keyholes... there are NO LOCK BOLTS! There are NO TUMBLERS! The locks are completely hollow inside!\u201D";
+        }
+        if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = "50%";
+        if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = "00:06 / 00:16";
+        [this.cutsceneKey1, this.cutsceneKey2, this.cutsceneKey3].forEach((k) => {
+          if (k) k.className = "cutscene-key-img spinning";
+        });
+        sound.playKeyTurnDecoy();
+        triggerSfx("RATCHET... WHIRRR?!", true, 3e3);
+        this.cutsceneTimeouts.push(setTimeout(() => {
+          this.playCutscenePhase(3);
+        }, 4800));
+      } else if (phase === 3) {
+        if (this.cutsceneBgImg) this.cutsceneBgImg.src = "assets/cutscene_key_insert.jpg";
+        if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = "flex";
+        if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = "flex";
+        if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = "PHASE 3: THE ANCIENT REVELATION";
+        if (this.cutsceneSpeechText) {
+          this.cutsceneSpeechText.innerText = "\u201CLook at the arch! Ancient runes are blazing across the rock: \u2018THE KEYS WERE DECOYS. THIS DOOR WAS NEVER LOCKED!\u2019 All this time... we were searching in the dark, when the door was waiting to be opened!\u201D";
+        }
+        if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = "75%";
+        if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = "00:11 / 00:16";
+        sound.playTwistReveal();
+        triggerSfx("RUNES AWAKEN!", false, 2500);
+        this.cutsceneTimeouts.push(setTimeout(() => {
+          this.playCutscenePhase(4);
+        }, 5e3));
+      } else if (phase === 4) {
+        if (this.cutsceneBgImg) this.cutsceneBgImg.src = "assets/cutscene_door_open.jpg";
+        if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = "none";
+        if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = "none";
+        if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = "PHASE 4: FREEDOM DAWN";
+        if (this.cutsceneSpeechText) {
+          this.cutsceneSpeechText.innerText = "\u201CIt yields to a simple push! The heavy granite slides apart effortlessly... The morning sunlight! WE ARE FREE!\u201D";
+        }
+        if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = "100%";
+        if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = "00:16 / 00:16";
+        sound.playStoneGrinding(3.6, 0.7, 1.25);
+        sound.playWallCracking();
+        triggerSfx("CREEEAAAK!!", true, 3e3);
       }
     }
     /* ---------------- MOBILE TOUCH CONTROLS ---------------- */
@@ -33244,6 +33458,9 @@ void main() {
         this.architect.libraryCabinet.leftDoor.rotation.y = -Math.PI / 1.8;
         this.architect.libraryCabinet.rightDoor.rotation.y = Math.PI / 1.8;
         this.architect.libraryCabinet.isOpen = true;
+        if (!this.state.hasKey("libraryKey") && this.architect.libraryKeyGroup) {
+          this.architect.libraryKeyGroup.visible = true;
+        }
       }
     }
     hideLibraryKeyMesh() {
@@ -33265,6 +33482,9 @@ void main() {
     openObservatoryVault() {
       if (this.architect.armillaryVault) {
         this.architect.armillaryVault.isOpen = true;
+        if (!this.state.hasKey("observatoryKey") && this.architect.observatoryKeyGroup) {
+          this.architect.observatoryKeyGroup.visible = true;
+        }
       }
     }
     hideObservatoryKeyMesh() {
@@ -33287,6 +33507,9 @@ void main() {
         this.architect.templeAltar.glyphMat.emissive.setHex(16096779);
         this.architect.templeAltar.glyphMat.emissiveIntensity = 1;
         this.architect.templeAltar.isOpen = true;
+        if (!this.state.hasKey("templeKey") && this.architect.templeKeyGroup) {
+          this.architect.templeKeyGroup.visible = true;
+        }
       }
     }
     hideTempleKeyMesh() {
@@ -33480,6 +33703,7 @@ void main() {
       if (s.puzzles.brazierLuna) this.setBrazierFlame("luna", s.puzzles.brazierLuna);
       if (s.puzzles.templeBalanced) this.openTempleAltar();
       if (s.puzzles.templeKeyCollected) this.hideTempleKeyMesh();
+      if (s.keys.templeKey) this.openDoor("door3");
       sound.init();
       sound.startBackgroundMusic();
       this.ui.startTimer();
@@ -33631,13 +33855,49 @@ void main() {
       const raycaster = new Raycaster();
       raycaster.setFromCamera(new Vector2(0, 0), this.camera);
       const intersects = raycaster.intersectObjects(this.interactables, true);
-      if (intersects.length > 0 && intersects[0].distance < 4.5) {
+      if (intersects.length > 0 && intersects[0].distance < 4.8) {
         let obj = intersects[0].object;
         while (obj && !obj.userData.type && obj.parent) obj = obj.parent;
-        if (obj && obj.userData.prompt) {
-          promptEl.innerText = obj.userData.prompt;
-          promptEl.style.display = "block";
-          return;
+        if (obj && obj.userData) {
+          let text = obj.userData.prompt;
+          const type = obj.userData.type;
+          if (type === "archive_cabinet") {
+            if (this.state.hasKey("libraryKey")) {
+              text = "Ornate Archive Cabinet (Empty - Key 1 Acquired)";
+            } else if (this.state.state.puzzles.libraryCabinetUnlocked) {
+              text = "[E] Take Whispering Key (Antique Brass Key \u2160)";
+            } else {
+              text = "[E] Ornate Archive Cabinet (Locked \u2014 Solve 3 Book Pedestals)";
+            }
+          } else if (type === "armillary_vault") {
+            if (this.state.hasKey("observatoryKey")) {
+              text = "Armillary Vault (Empty - Key 2 Acquired)";
+            } else if (this.state.state.puzzles.observatoryAligned) {
+              text = "[E] Take Astral Key (Silver Observatory Key \u2161)";
+            } else {
+              text = "[E] Armillary Vault (Sealed \u2014 Align Mirrors & Laser to Astral Sensor)";
+            }
+          } else if (type === "temple_altar") {
+            if (this.state.hasKey("templeKey")) {
+              text = "Ceremonial Altar (Empty - Key 3 Acquired)";
+            } else if (this.state.state.puzzles.templeBalanced) {
+              text = "[E] Take Ancient Key (Obsidian Runic Key \u2162)";
+            } else {
+              text = "[E] Ceremonial Altar (Sealed \u2014 Balance Sun & Moon Flames to 50%)";
+            }
+          } else if (type === "final_portal") {
+            if (this.state.hasAllKeys()) {
+              text = "[E] Place 3 Ancient Keys & Open Master Portal";
+            } else {
+              const count = this.state.getKeyCount();
+              text = `Master Portal Sealed (${count}/3 Keys Collected \u2014 Requires All 3 Keys)`;
+            }
+          }
+          if (text) {
+            promptEl.innerText = text;
+            promptEl.style.display = "block";
+            return;
+          }
         }
       }
       promptEl.style.display = "none";
