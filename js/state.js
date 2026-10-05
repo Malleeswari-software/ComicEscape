@@ -3,12 +3,12 @@
  * Game State Manager with LocalStorage Persistence
  */
 
-export const SAVE_KEY = 'escape_protocol_save_v1';
+export const SAVE_KEY = 'escape_protocol_save_v4';
 
 export class GameStateManager {
   constructor() {
     this.defaultState = {
-      playerName: "Alex",
+      playerName: "Maya",
       playerGender: "female", // 'female', 'male', 'other'
       characterAvatar: "assets/maya_portrait_trans.png",
       characterModel: "female",
@@ -21,28 +21,18 @@ export class GameStateManager {
         templeKey: false
       },
       puzzles: {
-        // Level 1: Library Book Pedestals (Golden Falcon, Silver Serpent, Azure Wolf)
-        // Correct order: 0: Falcon, 1: Serpent, 2: Wolf
         libraryBooks: [null, null, null],
         libraryCabinetUnlocked: false,
         libraryKeyCollected: false,
-        
-        // Level 2: Observatory Telescope & Optical Mirrors
-        // Mirror Alpha at 45 deg, Mirror Beta at 135 deg, Telescope angle aligned
-        telescopeAngle: 0, // 0 to 360 deg
-        mirrorAlphaAngle: 0, // 0, 45, 90, 135, etc.
+        telescopeAngle: 0,
+        mirrorAlphaAngle: 0,
         mirrorBetaAngle: 45,
         observatoryAligned: false,
         observatoryKeyCollected: false,
-        
-        // Level 3: Temple Shadow Balance
-        // Brazier Sol & Brazier Luna balanced between 40% and 60%
-        brazierSol: 20, // 0 to 100
-        brazierLuna: 80, // 0 to 100
+        brazierSol: 20,
+        brazierLuna: 80,
         templeBalanced: false,
         templeKeyCollected: false,
-        
-        // Final Exit Portal
         exitPortalUnlocked: false
       },
       discoveredComics: {
@@ -59,7 +49,7 @@ export class GameStateManager {
         temple: false
       },
       hintsUsed: 0,
-      currentHintTier: 0, // 0: none, 1: directional, 2: interpretation, 3: solution
+      currentHintTier: 0,
       gameWon: false,
       gameOver: false,
       gameStarted: false,
@@ -67,7 +57,7 @@ export class GameStateManager {
         masterVolume: 0.7,
         musicEnabled: true,
         sfxEnabled: true,
-        flashlightMode: 'white' // 'white', 'uv', 'laser'
+        flashlightMode: 'white'
       }
     };
 
@@ -77,18 +67,24 @@ export class GameStateManager {
 
   loadState() {
     try {
+      // Purge obsolete save caches
+      ['escape_protocol_save_v1', 'escape_protocol_save_v2', 'escape_protocol_save_v3'].forEach(k => {
+        try { localStorage.removeItem(k); } catch (_) {}
+      });
+
       const saved = localStorage.getItem(SAVE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Merge with defaults to prevent missing fields
-        return {
-          ...this.defaultState,
-          ...parsed,
-          keys: { ...this.defaultState.keys, ...(parsed.keys || {}) },
-          puzzles: { ...this.defaultState.puzzles, ...(parsed.puzzles || {}) },
-          discoveredComics: { ...this.defaultState.discoveredComics, ...(parsed.discoveredComics || {}) },
-          settings: { ...this.defaultState.settings, ...(parsed.settings || {}) }
-        };
+        if (parsed && parsed.gameStarted) {
+          return {
+            ...this.defaultState,
+            ...parsed,
+            keys: { ...this.defaultState.keys, ...(parsed.keys || {}) },
+            puzzles: { ...this.defaultState.puzzles, ...(parsed.puzzles || {}) },
+            discoveredComics: { ...this.defaultState.discoveredComics, ...(parsed.discoveredComics || {}) },
+            settings: { ...this.defaultState.settings, ...(parsed.settings || {}) }
+          };
+        }
       }
     } catch (e) {
       console.warn("Failed to load saved state:", e);

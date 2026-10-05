@@ -60,14 +60,26 @@ export class UIController {
       startBtn.addEventListener('click', () => this.handleStartGame());
     }
 
-    // Gender radio change updates avatar preview
-    const genderInputs = document.querySelectorAll('input[name="gender"]');
-    genderInputs.forEach(input => {
-      input.addEventListener('change', e => {
-        const val = e.target.value;
-        const previewImg = document.getElementById('char-preview-img');
-        if (previewImg) {
-          previewImg.src = val === 'female' ? 'assets/maya_explorer_trans.png?v=5' : 'assets/leo_explorer_trans.png?v=5';
+    // Character Selection Cards click handler
+    const charCards = document.querySelectorAll('.char-choice-card');
+    charCards.forEach(card => {
+      card.addEventListener('click', () => {
+        charCards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = true;
+          const val = radio.value;
+          const nameInput = document.getElementById('pname');
+          if (nameInput) {
+            if (val === 'female') nameInput.value = 'Maya';
+            else if (val === 'male') nameInput.value = 'Leo';
+            else nameInput.value = 'Expedition Duo';
+          }
+          const previewImg = document.getElementById('char-preview-img');
+          if (previewImg) {
+            previewImg.src = val === 'female' ? 'assets/maya_explorer_trans.png?v=5' : (val === 'male' ? 'assets/leo_explorer_trans.png?v=5' : 'assets/characters.png?v=5');
+          }
         }
       });
     });
@@ -209,13 +221,79 @@ export class UIController {
 
     const genderEl = document.querySelector('input[name="gender"]:checked');
     const gender = genderEl ? genderEl.value : "female";
+    const chosenName = name || (gender === 'female' ? 'Maya' : (gender === 'male' ? 'Leo' : 'Duo'));
 
-    this.state.state.playerName = name;
+    // Start fresh game session: reset all keys, all puzzles, lock all doors shut!
+    this.state.state.keys = { libraryKey: false, observatoryKey: false, templeKey: false };
+    this.state.state.puzzles = {
+      libraryBooks: [null, null, null],
+      libraryCabinetUnlocked: false,
+      libraryKeyCollected: false,
+      telescopeAngle: 0,
+      mirrorAlphaAngle: 0,
+      mirrorBetaAngle: 45,
+      observatoryAligned: false,
+      observatoryKeyCollected: false,
+      brazierSol: 20,
+      brazierLuna: 80,
+      templeBalanced: false,
+      templeKeyCollected: false,
+      exitPortalUnlocked: false
+    };
+    this.state.state.timeRemaining = 15 * 60;
+    this.state.state.hintsUsed = 0;
+    this.state.state.currentLevel = 1;
+    this.state.state.playerName = chosenName;
     this.state.state.playerGender = gender;
-    this.state.state.characterAvatar = gender === 'female' ? 'assets/maya_portrait_trans.png?v=5' : 'assets/leo_portrait_trans.png?v=5';
+    this.state.state.characterAvatar = gender === 'female'
+      ? 'assets/maya_portrait_trans.png?v=5'
+      : (gender === 'male' ? 'assets/leo_portrait_trans.png?v=5' : 'assets/girl_portrait_trans.png?v=5');
     this.state.state.characterModel = gender;
     this.state.state.gameStarted = true;
     this.state.save();
+
+    // Lock and reset every vault door firmly shut
+    if (this.game.doors) {
+      Object.values(this.game.doors).forEach(d => {
+        d.isOpen = false;
+        d.locked = true;
+        d.targetOffset = 0;
+        d.currentOffset = 0;
+        d.leftPanel.position.x = -d.width / 4;
+        d.rightPanel.position.x = d.width / 4;
+        if (d.statusLight && d.statusLight.material) {
+          d.statusLight.material.color.setHex(0xef4444);
+          d.statusLight.material.emissive.setHex(0xef4444);
+        }
+      });
+    }
+
+    // Close and lock all 3 key containers & hide key meshes
+    if (this.game.architect) {
+      if (this.game.architect.libraryCabinet) {
+        this.game.architect.libraryCabinet.isOpen = false;
+        this.game.architect.libraryCabinet.leftDoor.rotation.y = 0;
+        this.game.architect.libraryCabinet.rightDoor.rotation.y = 0;
+      }
+      if (this.game.architect.armillaryVault) {
+        this.game.architect.armillaryVault.isOpen = false;
+      }
+      if (this.game.architect.templeAltar) {
+        this.game.architect.templeAltar.isOpen = false;
+        this.game.architect.templeAltar.lid.position.z = 0;
+        if (this.game.architect.templeAltar.glyphMat) {
+          this.game.architect.templeAltar.glyphMat.emissiveIntensity = 0;
+        }
+      }
+      if (this.game.architect.exitPortal) {
+        this.game.architect.exitPortal.isOpen = false;
+        this.game.architect.exitPortal.targetOffset = 0;
+        this.game.architect.exitPortal.currentOffset = 0;
+      }
+      if (this.game.architect.libraryKeyGroup) this.game.architect.libraryKeyGroup.visible = false;
+      if (this.game.architect.observatoryKeyGroup) this.game.architect.observatoryKeyGroup.visible = false;
+      if (this.game.architect.templeKeyGroup) this.game.architect.templeKeyGroup.visible = false;
+    }
 
     // Hide Setup Modal, Show HUD
     if (this.setupModal) this.setupModal.style.display = 'none';
@@ -229,12 +307,12 @@ export class UIController {
     // Start Timer
     this.startTimer();
 
-    // Update HUD
+    // Update HUD and Gear
     this.updateHUDFromState();
     this.game.updateCharacterGear(gender);
     this.game.active = true;
 
-    this.showBanner("MISSION ENGAGED", `Operative ${name}, uncover the ancient secrets and reach the Master Portal!`);
+    this.showBanner("MISSION ENGAGED", `Operative ${chosenName}, all chamber vault doors are sealed! Decode the clues to proceed.`);
 
     // Lock controls
     try {
@@ -508,6 +586,7 @@ export class UIController {
   /* ---------------- DRAMATIC PLOT TWIST CUTSCENE CONTROLLER ---------------- */
   initCutscene() {
     this.cutsceneBgImg = document.getElementById('cutscene-bg-img');
+    this.cutsceneCharFigure = document.getElementById('cutscene-char-figure');
     this.cutsceneTimerDisplay = document.getElementById('cutscene-timer-display');
     this.cutsceneKeysLayer = document.getElementById('cutscene-keys-layer');
     this.cutsceneKey1 = document.getElementById('cutscene-key-1');
@@ -561,14 +640,29 @@ export class UIController {
     }
     this.clearCutsceneTimeouts();
 
-    // Set protagonist profile and portrait
-    const gender = this.state.state.playerGender || 'girl';
+    // Set protagonist profile and exact chosen character figure
+    const gender = this.state.state.playerGender || 'female';
     const isGirl = gender === 'female' || gender === 'girl';
-    if (this.cutsceneAvatarImg) {
-      this.cutsceneAvatarImg.src = isGirl ? 'assets/maya_portrait_trans.png?v=5' : 'assets/leo_portrait_trans.png?v=5';
+    const isGuy = gender === 'male' || gender === 'boy';
+
+    if (this.cutsceneCharFigure) {
+      if (isGirl) this.cutsceneCharFigure.src = 'assets/maya_explorer_trans.png?v=5';
+      else if (isGuy) this.cutsceneCharFigure.src = 'assets/leo_explorer_trans.png?v=5';
+      else this.cutsceneCharFigure.src = 'assets/characters.png?v=5';
+      this.cutsceneCharFigure.className = 'cutscene-char-figure reach';
+      this.cutsceneCharFigure.style.display = 'block';
     }
+
+    if (this.cutsceneAvatarImg) {
+      if (isGirl) this.cutsceneAvatarImg.src = 'assets/maya_portrait_trans.png?v=5';
+      else if (isGuy) this.cutsceneAvatarImg.src = 'assets/leo_portrait_trans.png?v=5';
+      else this.cutsceneAvatarImg.src = 'assets/characters_jungle.jpg?v=5';
+    }
+
     if (this.cutsceneSpeakerName) {
-      this.cutsceneSpeakerName.innerText = isGirl ? 'MAYA [FIELD OPERATIVE]' : 'LEO [CRYPTOLOGIST]';
+      if (isGirl) this.cutsceneSpeakerName.innerText = 'MAYA [JUNGLE EXPLORER]';
+      else if (isGuy) this.cutsceneSpeakerName.innerText = 'LEO [EXPEDITION SCHOLAR]';
+      else this.cutsceneSpeakerName.innerText = 'EXPEDITION DUO [MAYA & LEO]';
     }
 
     if (this.twistModal) {
@@ -580,6 +674,9 @@ export class UIController {
 
   playCutscenePhase(phase) {
     this.clearCutsceneTimeouts();
+
+    const gender = this.state.state.playerGender || 'female';
+    const isGuy = gender === 'male' || gender === 'boy';
 
     // Update active chapter tab button
     const chapBtns = document.querySelectorAll('.cutscene-chap-btn');
@@ -602,9 +699,12 @@ export class UIController {
       if (this.cutsceneBgImg) this.cutsceneBgImg.src = 'assets/cutscene_key_insert.jpg';
       if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = 'flex';
       if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = 'none';
+      if (this.cutsceneCharFigure) this.cutsceneCharFigure.className = 'cutscene-char-figure reach';
       if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = 'PHASE 1: KEY PLACEMENT';
       if (this.cutsceneSpeechText) {
-        this.cutsceneSpeechText.innerText = '“I have all three keys: Brass for the Mind, Silver for the Stars, Obsidian for the Shadow... Slotting them into the triumvirate locks now!”';
+        this.cutsceneSpeechText.innerText = isGuy
+          ? '“All three keys are placed in alignment: Brass, Silver, and Obsidian... Engaging the locks now!”'
+          : '“I have all three keys: Brass for the Mind, Silver for the Stars, Obsidian for the Shadow... Slotting them into the triumvirate locks now!”';
       }
       if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = '25%';
       if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = '00:02 / 00:16';
@@ -642,9 +742,12 @@ export class UIController {
       if (this.cutsceneBgImg) this.cutsceneBgImg.src = 'assets/cutscene_key_insert.jpg';
       if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = 'flex';
       if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = 'none';
+      if (this.cutsceneCharFigure) this.cutsceneCharFigure.className = 'cutscene-char-figure shock';
       if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = 'PHASE 2: THE HOLLOW DECOY (THE TWIST)';
       if (this.cutsceneSpeechText) {
-        this.cutsceneSpeechText.innerText = '“WAIT... WHAT?! The keys are just spinning freely in circles! Look into the keyholes... there are NO LOCK BOLTS! There are NO TUMBLERS! The locks are completely hollow inside!”';
+        this.cutsceneSpeechText.innerText = isGuy
+          ? '“Wait... this does not make sense! The locks are just turning freely without catching! Look inside the cylinder... there are NO TUMBLERS! The mechanism is an empty decoy!”'
+          : '“WAIT... WHAT?! The keys are just spinning freely in circles! Look into the keyholes... there are NO LOCK BOLTS! There are NO TUMBLERS! The locks are completely hollow inside!”';
       }
       if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = '50%';
       if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = '00:06 / 00:16';
@@ -667,6 +770,7 @@ export class UIController {
       if (this.cutsceneBgImg) this.cutsceneBgImg.src = 'assets/cutscene_key_insert.jpg';
       if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = 'flex';
       if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = 'flex';
+      if (this.cutsceneCharFigure) this.cutsceneCharFigure.className = 'cutscene-char-figure reach';
       if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = 'PHASE 3: THE ANCIENT REVELATION';
       if (this.cutsceneSpeechText) {
         this.cutsceneSpeechText.innerText = '“Look at the arch! Ancient runes are blazing across the rock: ‘THE KEYS WERE DECOYS. THIS DOOR WAS NEVER LOCKED!’ All this time... we were searching in the dark, when the door was waiting to be opened!”';
@@ -684,12 +788,15 @@ export class UIController {
 
     } else if (phase === 4) {
       // Phase 4: Push Into Sunlight & Freedom
-      if (this.cutsceneBgImg) this.cutsceneBgImg.src = 'assets/cutscene_door_open.jpg';
+      if (this.cutsceneBgImg) this.cutsceneBgImg.src = 'assets/victory_sunrise.jpg';
       if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = 'none';
       if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = 'none';
+      if (this.cutsceneCharFigure) this.cutsceneCharFigure.className = 'cutscene-char-figure push';
       if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = 'PHASE 4: FREEDOM DAWN';
       if (this.cutsceneSpeechText) {
-        this.cutsceneSpeechText.innerText = '“It yields to a simple push! The heavy granite slides apart effortlessly... The morning sunlight! WE ARE FREE!”';
+        this.cutsceneSpeechText.innerText = isGuy
+          ? '“The door opens on its own! The morning dawn is breaking over the mountains... We made it out!”'
+          : '“It yields to a simple push! The heavy granite slides apart effortlessly... The morning sunlight! WE ARE FREE!”';
       }
       if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = '100%';
       if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = '00:16 / 00:16';

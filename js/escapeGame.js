@@ -800,27 +800,29 @@ export class EscapeGame3D {
     this.ui.updateHUDFromState();
     this.setLightMode(s.settings.flashlightMode || 'white');
 
-    // Restore Puzzles
-    if (s.puzzles.libraryBooks) {
-      s.puzzles.libraryBooks.forEach((b, idx) => {
-        if (b) this.updateLecternVisuals(idx, b);
-      });
+    // Restore Puzzles only if game was actively in progress
+    if (s.gameStarted) {
+      if (s.puzzles.libraryBooks) {
+        s.puzzles.libraryBooks.forEach((b, idx) => {
+          if (b) this.updateLecternVisuals(idx, b);
+        });
+      }
+      if (s.puzzles.libraryCabinetUnlocked) this.openLibraryCabinet();
+      if (s.puzzles.libraryKeyCollected) this.hideLibraryKeyMesh();
+      if (s.keys.libraryKey) this.openDoor('door1');
+
+      if (s.puzzles.mirrorAlphaAngle) this.setMirrorAngle('alpha', s.puzzles.mirrorAlphaAngle);
+      if (s.puzzles.mirrorBetaAngle) this.setMirrorAngle('beta', s.puzzles.mirrorBetaAngle);
+      if (s.puzzles.observatoryAligned) this.openObservatoryVault();
+      if (s.puzzles.observatoryKeyCollected) this.hideObservatoryKeyMesh();
+      if (s.keys.observatoryKey) this.openDoor('door2');
+
+      if (s.puzzles.brazierSol) this.setBrazierFlame('sol', s.puzzles.brazierSol);
+      if (s.puzzles.brazierLuna) this.setBrazierFlame('luna', s.puzzles.brazierLuna);
+      if (s.puzzles.templeBalanced) this.openTempleAltar();
+      if (s.puzzles.templeKeyCollected) this.hideTempleKeyMesh();
+      if (s.keys.templeKey) this.openDoor('door3');
     }
-    if (s.puzzles.libraryCabinetUnlocked) this.openLibraryCabinet();
-    if (s.puzzles.libraryKeyCollected) this.hideLibraryKeyMesh();
-    if (s.keys.libraryKey) this.openDoor('door1');
-
-    if (s.puzzles.mirrorAlphaAngle) this.setMirrorAngle('alpha', s.puzzles.mirrorAlphaAngle);
-    if (s.puzzles.mirrorBetaAngle) this.setMirrorAngle('beta', s.puzzles.mirrorBetaAngle);
-    if (s.puzzles.observatoryAligned) this.openObservatoryVault();
-    if (s.puzzles.observatoryKeyCollected) this.hideObservatoryKeyMesh();
-    if (s.keys.observatoryKey) this.openDoor('door2');
-
-    if (s.puzzles.brazierSol) this.setBrazierFlame('sol', s.puzzles.brazierSol);
-    if (s.puzzles.brazierLuna) this.setBrazierFlame('luna', s.puzzles.brazierLuna);
-    if (s.puzzles.templeBalanced) this.openTempleAltar();
-    if (s.puzzles.templeKeyCollected) this.hideTempleKeyMesh();
-    if (s.keys.templeKey) this.openDoor('door3');
 
     sound.init();
     sound.startBackgroundMusic();

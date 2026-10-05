@@ -30446,11 +30446,11 @@ void main() {
   var sound = new SoundEngine();
 
   // js/state.js
-  var SAVE_KEY = "escape_protocol_save_v1";
+  var SAVE_KEY = "escape_protocol_save_v4";
   var GameStateManager = class {
     constructor() {
       this.defaultState = {
-        playerName: "Alex",
+        playerName: "Maya",
         playerGender: "female",
         // 'female', 'male', 'other'
         characterAvatar: "assets/maya_portrait_trans.png",
@@ -30466,29 +30466,18 @@ void main() {
           templeKey: false
         },
         puzzles: {
-          // Level 1: Library Book Pedestals (Golden Falcon, Silver Serpent, Azure Wolf)
-          // Correct order: 0: Falcon, 1: Serpent, 2: Wolf
           libraryBooks: [null, null, null],
           libraryCabinetUnlocked: false,
           libraryKeyCollected: false,
-          // Level 2: Observatory Telescope & Optical Mirrors
-          // Mirror Alpha at 45 deg, Mirror Beta at 135 deg, Telescope angle aligned
           telescopeAngle: 0,
-          // 0 to 360 deg
           mirrorAlphaAngle: 0,
-          // 0, 45, 90, 135, etc.
           mirrorBetaAngle: 45,
           observatoryAligned: false,
           observatoryKeyCollected: false,
-          // Level 3: Temple Shadow Balance
-          // Brazier Sol & Brazier Luna balanced between 40% and 60%
           brazierSol: 20,
-          // 0 to 100
           brazierLuna: 80,
-          // 0 to 100
           templeBalanced: false,
           templeKeyCollected: false,
-          // Final Exit Portal
           exitPortalUnlocked: false
         },
         discoveredComics: {
@@ -30508,7 +30497,6 @@ void main() {
         },
         hintsUsed: 0,
         currentHintTier: 0,
-        // 0: none, 1: directional, 2: interpretation, 3: solution
         gameWon: false,
         gameOver: false,
         gameStarted: false,
@@ -30517,7 +30505,6 @@ void main() {
           musicEnabled: true,
           sfxEnabled: true,
           flashlightMode: "white"
-          // 'white', 'uv', 'laser'
         }
       };
       this.state = this.loadState();
@@ -30525,17 +30512,25 @@ void main() {
     }
     loadState() {
       try {
+        ["escape_protocol_save_v1", "escape_protocol_save_v2", "escape_protocol_save_v3"].forEach((k) => {
+          try {
+            localStorage.removeItem(k);
+          } catch (_) {
+          }
+        });
         const saved = localStorage.getItem(SAVE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          return {
-            ...this.defaultState,
-            ...parsed,
-            keys: { ...this.defaultState.keys, ...parsed.keys || {} },
-            puzzles: { ...this.defaultState.puzzles, ...parsed.puzzles || {} },
-            discoveredComics: { ...this.defaultState.discoveredComics, ...parsed.discoveredComics || {} },
-            settings: { ...this.defaultState.settings, ...parsed.settings || {} }
-          };
+          if (parsed && parsed.gameStarted) {
+            return {
+              ...this.defaultState,
+              ...parsed,
+              keys: { ...this.defaultState.keys, ...parsed.keys || {} },
+              puzzles: { ...this.defaultState.puzzles, ...parsed.puzzles || {} },
+              discoveredComics: { ...this.defaultState.discoveredComics, ...parsed.discoveredComics || {} },
+              settings: { ...this.defaultState.settings, ...parsed.settings || {} }
+            };
+          }
         }
       } catch (e) {
         console.warn("Failed to load saved state:", e);
@@ -32408,13 +32403,25 @@ void main() {
       if (startBtn) {
         startBtn.addEventListener("click", () => this.handleStartGame());
       }
-      const genderInputs = document.querySelectorAll('input[name="gender"]');
-      genderInputs.forEach((input) => {
-        input.addEventListener("change", (e) => {
-          const val = e.target.value;
-          const previewImg = document.getElementById("char-preview-img");
-          if (previewImg) {
-            previewImg.src = val === "female" ? "assets/maya_explorer_trans.png?v=5" : "assets/leo_explorer_trans.png?v=5";
+      const charCards = document.querySelectorAll(".char-choice-card");
+      charCards.forEach((card) => {
+        card.addEventListener("click", () => {
+          charCards.forEach((c) => c.classList.remove("selected"));
+          card.classList.add("selected");
+          const radio = card.querySelector('input[type="radio"]');
+          if (radio) {
+            radio.checked = true;
+            const val = radio.value;
+            const nameInput = document.getElementById("pname");
+            if (nameInput) {
+              if (val === "female") nameInput.value = "Maya";
+              else if (val === "male") nameInput.value = "Leo";
+              else nameInput.value = "Expedition Duo";
+            }
+            const previewImg = document.getElementById("char-preview-img");
+            if (previewImg) {
+              previewImg.src = val === "female" ? "assets/maya_explorer_trans.png?v=5" : val === "male" ? "assets/leo_explorer_trans.png?v=5" : "assets/characters.png?v=5";
+            }
           }
         });
       });
@@ -32530,12 +32537,71 @@ void main() {
       if (nameError) nameError.style.display = "none";
       const genderEl = document.querySelector('input[name="gender"]:checked');
       const gender = genderEl ? genderEl.value : "female";
-      this.state.state.playerName = name;
+      const chosenName = name || (gender === "female" ? "Maya" : gender === "male" ? "Leo" : "Duo");
+      this.state.state.keys = { libraryKey: false, observatoryKey: false, templeKey: false };
+      this.state.state.puzzles = {
+        libraryBooks: [null, null, null],
+        libraryCabinetUnlocked: false,
+        libraryKeyCollected: false,
+        telescopeAngle: 0,
+        mirrorAlphaAngle: 0,
+        mirrorBetaAngle: 45,
+        observatoryAligned: false,
+        observatoryKeyCollected: false,
+        brazierSol: 20,
+        brazierLuna: 80,
+        templeBalanced: false,
+        templeKeyCollected: false,
+        exitPortalUnlocked: false
+      };
+      this.state.state.timeRemaining = 15 * 60;
+      this.state.state.hintsUsed = 0;
+      this.state.state.currentLevel = 1;
+      this.state.state.playerName = chosenName;
       this.state.state.playerGender = gender;
-      this.state.state.characterAvatar = gender === "female" ? "assets/maya_portrait_trans.png?v=5" : "assets/leo_portrait_trans.png?v=5";
+      this.state.state.characterAvatar = gender === "female" ? "assets/maya_portrait_trans.png?v=5" : gender === "male" ? "assets/leo_portrait_trans.png?v=5" : "assets/girl_portrait_trans.png?v=5";
       this.state.state.characterModel = gender;
       this.state.state.gameStarted = true;
       this.state.save();
+      if (this.game.doors) {
+        Object.values(this.game.doors).forEach((d) => {
+          d.isOpen = false;
+          d.locked = true;
+          d.targetOffset = 0;
+          d.currentOffset = 0;
+          d.leftPanel.position.x = -d.width / 4;
+          d.rightPanel.position.x = d.width / 4;
+          if (d.statusLight && d.statusLight.material) {
+            d.statusLight.material.color.setHex(15680580);
+            d.statusLight.material.emissive.setHex(15680580);
+          }
+        });
+      }
+      if (this.game.architect) {
+        if (this.game.architect.libraryCabinet) {
+          this.game.architect.libraryCabinet.isOpen = false;
+          this.game.architect.libraryCabinet.leftDoor.rotation.y = 0;
+          this.game.architect.libraryCabinet.rightDoor.rotation.y = 0;
+        }
+        if (this.game.architect.armillaryVault) {
+          this.game.architect.armillaryVault.isOpen = false;
+        }
+        if (this.game.architect.templeAltar) {
+          this.game.architect.templeAltar.isOpen = false;
+          this.game.architect.templeAltar.lid.position.z = 0;
+          if (this.game.architect.templeAltar.glyphMat) {
+            this.game.architect.templeAltar.glyphMat.emissiveIntensity = 0;
+          }
+        }
+        if (this.game.architect.exitPortal) {
+          this.game.architect.exitPortal.isOpen = false;
+          this.game.architect.exitPortal.targetOffset = 0;
+          this.game.architect.exitPortal.currentOffset = 0;
+        }
+        if (this.game.architect.libraryKeyGroup) this.game.architect.libraryKeyGroup.visible = false;
+        if (this.game.architect.observatoryKeyGroup) this.game.architect.observatoryKeyGroup.visible = false;
+        if (this.game.architect.templeKeyGroup) this.game.architect.templeKeyGroup.visible = false;
+      }
       if (this.setupModal) this.setupModal.style.display = "none";
       if (this.hud) this.hud.style.display = "flex";
       sound.init();
@@ -32545,7 +32611,7 @@ void main() {
       this.updateHUDFromState();
       this.game.updateCharacterGear(gender);
       this.game.active = true;
-      this.showBanner("MISSION ENGAGED", `Operative ${name}, uncover the ancient secrets and reach the Master Portal!`);
+      this.showBanner("MISSION ENGAGED", `Operative ${chosenName}, all chamber vault doors are sealed! Decode the clues to proceed.`);
       try {
         this.game.controls.lock();
       } catch (e) {
@@ -32781,6 +32847,7 @@ void main() {
     /* ---------------- DRAMATIC PLOT TWIST CUTSCENE CONTROLLER ---------------- */
     initCutscene() {
       this.cutsceneBgImg = document.getElementById("cutscene-bg-img");
+      this.cutsceneCharFigure = document.getElementById("cutscene-char-figure");
       this.cutsceneTimerDisplay = document.getElementById("cutscene-timer-display");
       this.cutsceneKeysLayer = document.getElementById("cutscene-keys-layer");
       this.cutsceneKey1 = document.getElementById("cutscene-key-1");
@@ -32828,13 +32895,25 @@ void main() {
         this.initCutscene();
       }
       this.clearCutsceneTimeouts();
-      const gender = this.state.state.playerGender || "girl";
+      const gender = this.state.state.playerGender || "female";
       const isGirl = gender === "female" || gender === "girl";
+      const isGuy = gender === "male" || gender === "boy";
+      if (this.cutsceneCharFigure) {
+        if (isGirl) this.cutsceneCharFigure.src = "assets/maya_explorer_trans.png?v=5";
+        else if (isGuy) this.cutsceneCharFigure.src = "assets/leo_explorer_trans.png?v=5";
+        else this.cutsceneCharFigure.src = "assets/characters.png?v=5";
+        this.cutsceneCharFigure.className = "cutscene-char-figure reach";
+        this.cutsceneCharFigure.style.display = "block";
+      }
       if (this.cutsceneAvatarImg) {
-        this.cutsceneAvatarImg.src = isGirl ? "assets/maya_portrait_trans.png?v=5" : "assets/leo_portrait_trans.png?v=5";
+        if (isGirl) this.cutsceneAvatarImg.src = "assets/maya_portrait_trans.png?v=5";
+        else if (isGuy) this.cutsceneAvatarImg.src = "assets/leo_portrait_trans.png?v=5";
+        else this.cutsceneAvatarImg.src = "assets/characters_jungle.jpg?v=5";
       }
       if (this.cutsceneSpeakerName) {
-        this.cutsceneSpeakerName.innerText = isGirl ? "MAYA [FIELD OPERATIVE]" : "LEO [CRYPTOLOGIST]";
+        if (isGirl) this.cutsceneSpeakerName.innerText = "MAYA [JUNGLE EXPLORER]";
+        else if (isGuy) this.cutsceneSpeakerName.innerText = "LEO [EXPEDITION SCHOLAR]";
+        else this.cutsceneSpeakerName.innerText = "EXPEDITION DUO [MAYA & LEO]";
       }
       if (this.twistModal) {
         this.twistModal.style.display = "flex";
@@ -32843,6 +32922,8 @@ void main() {
     }
     playCutscenePhase(phase) {
       this.clearCutsceneTimeouts();
+      const gender = this.state.state.playerGender || "female";
+      const isGuy = gender === "male" || gender === "boy";
       const chapBtns = document.querySelectorAll(".cutscene-chap-btn");
       chapBtns.forEach((b) => {
         b.classList.toggle("active", parseInt(b.dataset.phase, 10) === phase);
@@ -32860,9 +32941,10 @@ void main() {
         if (this.cutsceneBgImg) this.cutsceneBgImg.src = "assets/cutscene_key_insert.jpg";
         if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = "flex";
         if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = "none";
+        if (this.cutsceneCharFigure) this.cutsceneCharFigure.className = "cutscene-char-figure reach";
         if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = "PHASE 1: KEY PLACEMENT";
         if (this.cutsceneSpeechText) {
-          this.cutsceneSpeechText.innerText = "\u201CI have all three keys: Brass for the Mind, Silver for the Stars, Obsidian for the Shadow... Slotting them into the triumvirate locks now!\u201D";
+          this.cutsceneSpeechText.innerText = isGuy ? "\u201CAll three keys are placed in alignment: Brass, Silver, and Obsidian... Engaging the locks now!\u201D" : "\u201CI have all three keys: Brass for the Mind, Silver for the Stars, Obsidian for the Shadow... Slotting them into the triumvirate locks now!\u201D";
         }
         if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = "25%";
         if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = "00:02 / 00:16";
@@ -32891,9 +32973,10 @@ void main() {
         if (this.cutsceneBgImg) this.cutsceneBgImg.src = "assets/cutscene_key_insert.jpg";
         if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = "flex";
         if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = "none";
+        if (this.cutsceneCharFigure) this.cutsceneCharFigure.className = "cutscene-char-figure shock";
         if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = "PHASE 2: THE HOLLOW DECOY (THE TWIST)";
         if (this.cutsceneSpeechText) {
-          this.cutsceneSpeechText.innerText = "\u201CWAIT... WHAT?! The keys are just spinning freely in circles! Look into the keyholes... there are NO LOCK BOLTS! There are NO TUMBLERS! The locks are completely hollow inside!\u201D";
+          this.cutsceneSpeechText.innerText = isGuy ? "\u201CWait... this does not make sense! The locks are just turning freely without catching! Look inside the cylinder... there are NO TUMBLERS! The mechanism is an empty decoy!\u201D" : "\u201CWAIT... WHAT?! The keys are just spinning freely in circles! Look into the keyholes... there are NO LOCK BOLTS! There are NO TUMBLERS! The locks are completely hollow inside!\u201D";
         }
         if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = "50%";
         if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = "00:06 / 00:16";
@@ -32909,6 +32992,7 @@ void main() {
         if (this.cutsceneBgImg) this.cutsceneBgImg.src = "assets/cutscene_key_insert.jpg";
         if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = "flex";
         if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = "flex";
+        if (this.cutsceneCharFigure) this.cutsceneCharFigure.className = "cutscene-char-figure reach";
         if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = "PHASE 3: THE ANCIENT REVELATION";
         if (this.cutsceneSpeechText) {
           this.cutsceneSpeechText.innerText = "\u201CLook at the arch! Ancient runes are blazing across the rock: \u2018THE KEYS WERE DECOYS. THIS DOOR WAS NEVER LOCKED!\u2019 All this time... we were searching in the dark, when the door was waiting to be opened!\u201D";
@@ -32921,12 +33005,13 @@ void main() {
           this.playCutscenePhase(4);
         }, 5e3));
       } else if (phase === 4) {
-        if (this.cutsceneBgImg) this.cutsceneBgImg.src = "assets/cutscene_door_open.jpg";
+        if (this.cutsceneBgImg) this.cutsceneBgImg.src = "assets/victory_sunrise.jpg";
         if (this.cutsceneKeysLayer) this.cutsceneKeysLayer.style.display = "none";
         if (this.cutsceneEdictBanner) this.cutsceneEdictBanner.style.display = "none";
+        if (this.cutsceneCharFigure) this.cutsceneCharFigure.className = "cutscene-char-figure push";
         if (this.cutscenePhaseBadge) this.cutscenePhaseBadge.innerText = "PHASE 4: FREEDOM DAWN";
         if (this.cutsceneSpeechText) {
-          this.cutsceneSpeechText.innerText = "\u201CIt yields to a simple push! The heavy granite slides apart effortlessly... The morning sunlight! WE ARE FREE!\u201D";
+          this.cutsceneSpeechText.innerText = isGuy ? "\u201CThe door opens on its own! The morning dawn is breaking over the mountains... We made it out!\u201D" : "\u201CIt yields to a simple push! The heavy granite slides apart effortlessly... The morning sunlight! WE ARE FREE!\u201D";
         }
         if (this.cutsceneProgressFill) this.cutsceneProgressFill.style.width = "100%";
         if (this.cutsceneTimerDisplay) this.cutsceneTimerDisplay.innerText = "00:16 / 00:16";
@@ -33686,24 +33771,26 @@ void main() {
       this.updateCharacterGear(s.playerGender);
       this.ui.updateHUDFromState();
       this.setLightMode(s.settings.flashlightMode || "white");
-      if (s.puzzles.libraryBooks) {
-        s.puzzles.libraryBooks.forEach((b, idx) => {
-          if (b) this.updateLecternVisuals(idx, b);
-        });
+      if (s.gameStarted) {
+        if (s.puzzles.libraryBooks) {
+          s.puzzles.libraryBooks.forEach((b, idx) => {
+            if (b) this.updateLecternVisuals(idx, b);
+          });
+        }
+        if (s.puzzles.libraryCabinetUnlocked) this.openLibraryCabinet();
+        if (s.puzzles.libraryKeyCollected) this.hideLibraryKeyMesh();
+        if (s.keys.libraryKey) this.openDoor("door1");
+        if (s.puzzles.mirrorAlphaAngle) this.setMirrorAngle("alpha", s.puzzles.mirrorAlphaAngle);
+        if (s.puzzles.mirrorBetaAngle) this.setMirrorAngle("beta", s.puzzles.mirrorBetaAngle);
+        if (s.puzzles.observatoryAligned) this.openObservatoryVault();
+        if (s.puzzles.observatoryKeyCollected) this.hideObservatoryKeyMesh();
+        if (s.keys.observatoryKey) this.openDoor("door2");
+        if (s.puzzles.brazierSol) this.setBrazierFlame("sol", s.puzzles.brazierSol);
+        if (s.puzzles.brazierLuna) this.setBrazierFlame("luna", s.puzzles.brazierLuna);
+        if (s.puzzles.templeBalanced) this.openTempleAltar();
+        if (s.puzzles.templeKeyCollected) this.hideTempleKeyMesh();
+        if (s.keys.templeKey) this.openDoor("door3");
       }
-      if (s.puzzles.libraryCabinetUnlocked) this.openLibraryCabinet();
-      if (s.puzzles.libraryKeyCollected) this.hideLibraryKeyMesh();
-      if (s.keys.libraryKey) this.openDoor("door1");
-      if (s.puzzles.mirrorAlphaAngle) this.setMirrorAngle("alpha", s.puzzles.mirrorAlphaAngle);
-      if (s.puzzles.mirrorBetaAngle) this.setMirrorAngle("beta", s.puzzles.mirrorBetaAngle);
-      if (s.puzzles.observatoryAligned) this.openObservatoryVault();
-      if (s.puzzles.observatoryKeyCollected) this.hideObservatoryKeyMesh();
-      if (s.keys.observatoryKey) this.openDoor("door2");
-      if (s.puzzles.brazierSol) this.setBrazierFlame("sol", s.puzzles.brazierSol);
-      if (s.puzzles.brazierLuna) this.setBrazierFlame("luna", s.puzzles.brazierLuna);
-      if (s.puzzles.templeBalanced) this.openTempleAltar();
-      if (s.puzzles.templeKeyCollected) this.hideTempleKeyMesh();
-      if (s.keys.templeKey) this.openDoor("door3");
       sound.init();
       sound.startBackgroundMusic();
       this.ui.startTimer();
