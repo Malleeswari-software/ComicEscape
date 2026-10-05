@@ -804,6 +804,13 @@ export class UIController {
       sound.playStoneGrinding(3.6, 0.7, 1.25);
       sound.playWallCracking();
       triggerSfx('CREEEAAAK!!', true, 3000);
+
+      // Auto-transition to 3D cinematic victory after Phase 4 dialogue finishes (5.5s)
+      this.cutsceneTimeouts.push(setTimeout(() => {
+        this.clearCutsceneTimeouts();
+        if (this.twistModal) this.twistModal.style.display = 'none';
+        this.game.triggerCinematicVictory();
+      }, 5500));
     }
   }
 

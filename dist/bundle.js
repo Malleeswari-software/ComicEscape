@@ -33021,6 +33021,11 @@ void main() {
         sound.playStoneGrinding(3.6, 0.7, 1.25);
         sound.playWallCracking();
         triggerSfx("CREEEAAAK!!", true, 3e3);
+        this.cutsceneTimeouts.push(setTimeout(() => {
+          this.clearCutsceneTimeouts();
+          if (this.twistModal) this.twistModal.style.display = "none";
+          this.game.triggerCinematicVictory();
+        }, 5500));
       }
     }
     /* ---------------- MOBILE TOUCH CONTROLS ---------------- */
