@@ -1,9 +1,9 @@
-# THE ESCAPE PROTOCOL: Shadows of the Forgotten
+# COMIC ESCAPE: Shadows of the Forgotten
 ### A 15-Minute Cinematic Comic-Based 3D Escape Room Experience
 
-![The Escape Protocol Banner](assets/cover_art.jpg)
+![Comic Escape Banner](assets/comic_escape_banner.jpg)
 
-**The Escape Protocol: Shadows of the Forgotten** is an immersive browser-based 3D escape room game combining comic-book storytelling, tactile environmental puzzles, multi-spectral lighting mechanics, and an adaptive procedural Web Audio soundscape.
+**Comic Escape: Shadows of the Forgotten** is an immersive browser-based 3D escape room game combining comic-book storytelling, tactile environmental puzzles, multi-spectral lighting mechanics, zero-gravity antigravity levitation, and an adaptive procedural Web Audio soundscape.
 
 ---
 

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>THE ESCAPE PROTOCOL: Shadows of the Forgotten</title>
-  <meta name="description" content="A premium 15-minute cinematic comic-based escape room game. Explore three mysterious chambers, solve illuminated graphic-novel puzzles, and conquer the Shadows of the Forgotten.">
+  <title>Comic Escape</title>
+  <meta name="description" content="Comic Escape: A cinematic 3D mystery escape room game. Explore ancient temple chambers, decode graphic-novel clues, use antigravity flight, and uncover the truth.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Cinzel:wght@600;700;900&family=Outfit:wght@400;600;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
@@ -1167,16 +1167,16 @@
 
   <!-- Click to Resume Control Overlay -->
   <div id="click-to-play">
-    <h2>CLICK TO RESUME OPERATIVE CONTROL</h2>
+    <h2>CLICK TO RESUME COMIC ESCAPE</h2>
     <p>Move: <strong>[W, A, S, D]</strong> • 🌌 Antigravity Flight: <strong>[G]</strong> • Float Up/Down: <strong>[Space / C]</strong> • Aim: <strong>Mouse</strong> • Interact: <strong>[E]</strong> • Light: <strong>[1, 2, 3, F]</strong></p>
   </div>
 
   <!-- Pre-Game Character Creation & Mode Setup Modal -->
   <div id="setup-modal" class="overlay">
     <div class="card">
-      <img src="assets/cover_art.jpg" alt="The Escape Protocol Cover Art" class="cover-banner">
-      <h1>THE ESCAPE PROTOCOL</h1>
-      <div class="subtitle">Shadows of the Forgotten • Cinematic Escape Room</div>
+      <img src="assets/comic_escape_banner.jpg" alt="Comic Escape Cover Art" class="cover-banner">
+      <h1>COMIC ESCAPE</h1>
+      <div class="subtitle">Shadows of the Forgotten • Cinematic 3D Escape Room</div>
       
       <p>Three sealed chambers separate you from freedom: The Forgotten Library, The Observatory of Lost Stars, and The Temple of Living Shadows. Decode graphic-novel clues, bend multi-spectral light, and acquire the 3 keys before the 15-minute lockdown.</p>
 
@@ -1197,24 +1197,24 @@
 
       <!-- Character Appearance -->
       <div class="input-group">
-        <label>CHOOSE YOUR EXPLORER APPAREL</label>
+        <label>CHOOSE YOUR EXPLORER</label>
         <div class="character-select-grid">
           <label class="char-choice-card" for="gender-f">
             <input type="radio" id="gender-f" name="gender" value="female" checked>
             <div class="char-img-wrap">
-              <img src="assets/character_girl_trans.png" alt="Maya Female Explorer">
+              <img src="assets/character_girl_trans.png" alt="Maya Jungle Explorer">
             </div>
             <div class="char-title">MAYA</div>
-            <div class="char-spec">Athletic Sportswear Jumpsuit</div>
+            <div class="char-spec">Jungle Explorer & Navigator</div>
           </label>
 
           <label class="char-choice-card" for="gender-m">
             <input type="radio" id="gender-m" name="gender" value="male">
             <div class="char-img-wrap">
-              <img src="assets/character_boy_trans.png" alt="Leo Male Explorer">
+              <img src="assets/character_boy_trans.png" alt="Leo Explorer Scholar">
             </div>
             <div class="char-title">LEO</div>
-            <div class="char-spec">Athletic Outdoor Tracksuit</div>
+            <div class="char-spec">Scholar & Cartographer</div>
           </label>
 
           <label class="char-choice-card" for="gender-x">
@@ -1222,8 +1222,8 @@
             <div class="char-img-wrap">
               <img id="char-preview-img" src="assets/character_girl_trans.png" alt="Custom Appearance">
             </div>
-            <div class="char-title">CUSTOM</div>
-            <div class="char-spec">Prefer not to say</div>
+            <div class="char-title">EXPEDITION DUO</div>
+            <div class="char-spec">Maya & Leo Adventure Team</div>
           </label>
         </div>
       </div>
@@ -1243,7 +1243,7 @@
         </div>
       </div>
 
-      <button class="btn-primary" id="start-btn">ENGAGE ESCAPE PROTOCOL</button>
+      <button class="btn-primary" id="start-btn">START COMIC ESCAPE</button>
     </div>
   </div>
 
@@ -1256,7 +1256,7 @@
         <button class="journal-tab" data-comic="temple">CHAPTER III: THE TEMPLE</button>
       </div>
       <div class="comic-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h2 id="comic-title" style="font-family: 'Cinzel', serif; color: #facc15; font-size: 24px;">THE ESCAPE CHRONICLES</h2>
+        <h2 id="comic-title" style="font-family: 'Cinzel', serif; color: #facc15; font-size: 24px;">COMIC ESCAPE CHRONICLES</h2>
       </div>
       <div id="comic-strip-container">
         <!-- Injected dynamically -->
@@ -1358,7 +1358,7 @@
   <div id="victory-modal">
     <div class="victory-card">
       <img src="assets/victory_sunrise.jpg" alt="Sunrise Over Ancient Mountains" class="victory-banner">
-      <h1 style="color: #22c55e; font-size: 28px;">ESCAPE PROTOCOL CLEARED: THE DECOY TWIST!</h1>
+      <h1 style="color: #22c55e; font-size: 28px;">COMIC ESCAPE CLEARED: THE DECOY TWIST!</h1>
       <div class="subtitle" style="color: #facc15;">THE FINAL DOOR WAS NEVER LOCKED — YOU DISCOVERED THE TRUTH!</div>
       <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">
         Brilliant work, Operative <strong id="vic-player-name" style="color: #facc15;">Alex</strong>! You bypassed the psychological trap of the ancient architects. While countless souls wandered the shadows searching for keys in the dark, you faced the gate directly with light and courage, shattering the false locks without a single key!

@@ -182,13 +182,13 @@ export class EscapeGame3D {
   updateCharacterGear(gender) {
     if (!this.sleeveMat || !this.stripeMat) return;
     if (gender === 'female') {
-      // Girl: Blue athletic jumpsuit with purple trim
-      this.sleeveMat.color.setHex(0x0284c7);
-      this.stripeMat.color.setHex(0x7c3aed);
+      // Maya: Safari explorer vest / terracotta shirt with leather brown trim
+      this.sleeveMat.color.setHex(0xc27845);
+      this.stripeMat.color.setHex(0x5c3d1e);
     } else {
-      // Boy: Lime-green pullover with navy trim
-      this.sleeveMat.color.setHex(0x84cc16);
-      this.stripeMat.color.setHex(0x0284c7);
+      // Leo: Olive field expedition jacket with dark khaki/forest trim
+      this.sleeveMat.color.setHex(0x3e5e38);
+      this.stripeMat.color.setHex(0x273822);
     }
   }
 

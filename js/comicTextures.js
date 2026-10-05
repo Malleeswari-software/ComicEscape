@@ -159,7 +159,7 @@ export class ComicTextureGenerator {
     ctx.fillStyle = '#facc15';
     ctx.font = '900 32px "Impact", "Arial Black", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`THE ESCAPE PROTOCOL • ${title.toUpperCase()}`, 28, 48);
+    ctx.fillText(`COMIC ESCAPE • ${title.toUpperCase()}`, 28, 48);
 
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 16px "Space Mono", monospace';

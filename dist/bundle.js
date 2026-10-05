@@ -30697,7 +30697,7 @@ void main() {
       ctx.fillStyle = "#facc15";
       ctx.font = '900 32px "Impact", "Arial Black", sans-serif';
       ctx.textAlign = "left";
-      ctx.fillText(`THE ESCAPE PROTOCOL \u2022 ${title.toUpperCase()}`, 28, 48);
+      ctx.fillText(`COMIC ESCAPE \u2022 ${title.toUpperCase()}`, 28, 48);
       ctx.fillStyle = "#38bdf8";
       ctx.font = 'bold 16px "Space Mono", monospace';
       ctx.textAlign = "right";
@@ -32937,11 +32937,11 @@ void main() {
     updateCharacterGear(gender) {
       if (!this.sleeveMat || !this.stripeMat) return;
       if (gender === "female") {
-        this.sleeveMat.color.setHex(165063);
-        this.stripeMat.color.setHex(8141549);
+        this.sleeveMat.color.setHex(12744773);
+        this.stripeMat.color.setHex(6044958);
       } else {
-        this.sleeveMat.color.setHex(8702998);
-        this.stripeMat.color.setHex(165063);
+        this.sleeveMat.color.setHex(4087352);
+        this.stripeMat.color.setHex(2570274);
       }
     }
     setLightMode(mode) {
