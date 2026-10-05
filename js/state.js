@@ -10,7 +10,7 @@ export class GameStateManager {
     this.defaultState = {
       playerName: "Alex",
       playerGender: "female", // 'female', 'male', 'other'
-      characterAvatar: "assets/girl_portrait_trans.png",
+      characterAvatar: "assets/maya_portrait_trans.png",
       characterModel: "female",
       currentLevel: 1, // 1: Library, 2: Observatory, 3: Temple
       timeRemaining: 15 * 60, // 900 seconds (15 minutes)

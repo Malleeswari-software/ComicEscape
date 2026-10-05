@@ -30421,7 +30421,7 @@ void main() {
         playerName: "Alex",
         playerGender: "female",
         // 'female', 'male', 'other'
-        characterAvatar: "assets/girl_portrait_trans.png",
+        characterAvatar: "assets/maya_portrait_trans.png",
         characterModel: "female",
         currentLevel: 1,
         // 1: Library, 2: Observatory, 3: Temple
@@ -32352,7 +32352,7 @@ void main() {
           const val = e.target.value;
           const previewImg = document.getElementById("char-preview-img");
           if (previewImg) {
-            previewImg.src = val === "female" ? "assets/character_girl_trans.png" : "assets/character_boy_trans.png";
+            previewImg.src = val === "female" ? "assets/maya_explorer_trans.png?v=5" : "assets/leo_explorer_trans.png?v=5";
           }
         });
       });
@@ -32468,7 +32468,7 @@ void main() {
       const gender = genderEl ? genderEl.value : "female";
       this.state.state.playerName = name;
       this.state.state.playerGender = gender;
-      this.state.state.characterAvatar = gender === "female" ? "assets/girl_portrait_trans.png" : "assets/boy_portrait_trans.png";
+      this.state.state.characterAvatar = gender === "female" ? "assets/maya_portrait_trans.png?v=5" : "assets/leo_portrait_trans.png?v=5";
       this.state.state.characterModel = gender;
       this.state.state.gameStarted = true;
       this.state.save();
