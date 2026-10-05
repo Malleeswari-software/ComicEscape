@@ -161,7 +161,8 @@ export class PuzzleManager {
     sound.playKeyPickup('obsidian');
 
     this.game.hideTempleKeyMesh();
-    this.game.showBannerPopup("ANCIENT KEY ACQUIRED!", "Proceed to the Master Exit Portal on the North Wall to investigate!");
+    this.game.openDoor('door3');
+    this.game.showBannerPopup("ANCIENT KEY ACQUIRED!", "Key 3 (Obsidian Key) added to inventory! Sanctuary Gateway Unlocked.");
   }
 
   /* ---------------- ANTIGRAVITY RELIC PUZZLE SOLVERS ---------------- */

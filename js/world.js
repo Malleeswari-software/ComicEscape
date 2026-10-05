@@ -172,7 +172,7 @@ export class WorldArchitect {
     this.createPartitionWall(-6.2, 3.25, -8, 8.0, 6.5, 0); // Left solid wall
     this.createPartitionWall(6.2, 3.25, -8, 8.0, 6.5, 0);  // Right solid wall
     this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0, false); // Top arch lintel (overhead only, no ground collider)
-    this.game.doors['door1'] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal");
+    this.game.doors['door1'] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal", 'libraryKey');
   }
 
   createBookshelfRow(x, y, z, length, height, rotY) {
@@ -456,7 +456,7 @@ export class WorldArchitect {
     this.createPartitionWall(-6.2, 3.25, Z_CENTER - 10, 8.0, 6.5, 0); // Left solid wall
     this.createPartitionWall(6.2, 3.25, Z_CENTER - 10, 8.0, 6.5, 0);  // Right solid wall
     this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0, false); // Top arch lintel (overhead only, no ground collider)
-    this.game.doors['door2'] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway");
+    this.game.doors['door2'] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway", 'observatoryKey');
   }
 
   createStarChartWall(x, y, z, width, height, rotY) {
@@ -662,7 +662,7 @@ export class WorldArchitect {
     this.createPartitionWall(-7.1, 3.5, -48, 9.8, 7.0, 0); // Left solid wall
     this.createPartitionWall(7.1, 3.5, -48, 9.8, 7.0, 0);  // Right solid wall
     this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0, false); // Top arch lintel (overhead only, no ground collider)
-    this.game.doors['door3'] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway");
+    this.game.doors['door3'] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway", 'templeKey');
   }
 
   createHieroglyphWall(x, y, z, width, height, rotY) {

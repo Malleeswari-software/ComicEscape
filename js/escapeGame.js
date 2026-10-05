@@ -320,7 +320,7 @@ export class EscapeGame3D {
     return wall;
   }
 
-  createVaultDoor(x, y, z, w, h, locked = true, label = "Vault Door") {
+  createVaultDoor(x, y, z, w, h, locked = true, label = "Vault Door", requiredKey = null) {
     const group = new THREE.Group();
     group.position.set(x, y, z);
 
@@ -385,7 +385,8 @@ export class EscapeGame3D {
     doorTrigger.userData = {
       type: 'vault_door',
       doorRef: doorObj,
-      label: label
+      label: label,
+      requiredKey: requiredKey
     };
     this.interactables.push(doorTrigger);
 
@@ -515,10 +516,18 @@ export class EscapeGame3D {
           }
         } else if (data.type === 'vault_door') {
           if (data.doorRef && data.doorRef.isOpen) {
-            this.showBannerPopup("GATEWAY OPEN", `${data.label} is unlocked. Step through!`);
-          } else {
-            this.showBannerPopup(`${data.label.toUpperCase()} SEALED`, "This massive reinforced portal is locked. Solve this chamber's puzzle to unlock it!");
-            sound.playStoneLocked();
+            this.showBannerPopup("GATEWAY OPEN", `${data.label} is already unlocked. Step through!`);
+          } else if (data.doorRef && !data.doorRef.isOpen) {
+            const reqKey = data.requiredKey;
+            const hasKey = reqKey ? this.state.hasKey(reqKey) : false;
+            if (hasKey || (reqKey === 'templeKey' && this.state.hasAllKeys())) {
+              data.doorRef.open();
+              sound.playKeyPickup(reqKey === 'libraryKey' ? 'brass' : (reqKey === 'observatoryKey' ? 'silver' : 'obsidian'));
+              this.showBannerPopup("DOOR UNLOCKED", `Key used! ${data.label} has opened.`);
+            } else {
+              this.showBannerPopup(`${data.label.toUpperCase()} SEALED`, `This massive reinforced portal is locked. Solve this chamber's puzzle to obtain the key!`);
+              sound.playStoneLocked();
+            }
           }
         }
       }
@@ -1074,8 +1083,13 @@ export class EscapeGame3D {
             text = `Master Portal Sealed (${count}/3 Keys Collected — Requires All 3 Keys)`;
           }
         } else if (type === 'vault_door') {
-          if (obj.userData.doorRef && obj.userData.doorRef.isOpen) {
+          const dRef = obj.userData.doorRef;
+          const reqKey = obj.userData.requiredKey;
+          const hasKey = reqKey ? this.state.hasKey(reqKey) : false;
+          if (dRef && dRef.isOpen) {
             text = `${obj.userData.label} [Open — Walk Through]`;
+          } else if (hasKey || (reqKey === 'templeKey' && this.state.hasAllKeys())) {
+            text = `[E] Unlock ${obj.userData.label}`;
           } else {
             text = `${obj.userData.label} (Sealed — Solve Chamber Puzzle to Unlock)`;
           }

@@ -31220,7 +31220,7 @@ void main() {
       this.createPartitionWall(-6.2, 3.25, -8, 8, 6.5, 0);
       this.createPartitionWall(6.2, 3.25, -8, 8, 6.5, 0);
       this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0, false);
-      this.game.doors["door1"] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal");
+      this.game.doors["door1"] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal", "libraryKey");
     }
     createBookshelfRow(x, y, z, length, height, rotY) {
       const group = new Group();
@@ -31438,7 +31438,7 @@ void main() {
       this.createPartitionWall(-6.2, 3.25, Z_CENTER - 10, 8, 6.5, 0);
       this.createPartitionWall(6.2, 3.25, Z_CENTER - 10, 8, 6.5, 0);
       this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0, false);
-      this.game.doors["door2"] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway");
+      this.game.doors["door2"] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway", "observatoryKey");
     }
     createStarChartWall(x, y, z, width, height, rotY) {
       const sCanvas = document.createElement("canvas");
@@ -31609,7 +31609,7 @@ void main() {
       this.createPartitionWall(-7.1, 3.5, -48, 9.8, 7, 0);
       this.createPartitionWall(7.1, 3.5, -48, 9.8, 7, 0);
       this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0, false);
-      this.game.doors["door3"] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway");
+      this.game.doors["door3"] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway", "templeKey");
     }
     createHieroglyphWall(x, y, z, width, height, rotY) {
       const hCanvas = document.createElement("canvas");
@@ -32313,7 +32313,8 @@ void main() {
       this.state.collectKey("templeKey");
       sound.playKeyPickup("obsidian");
       this.game.hideTempleKeyMesh();
-      this.game.showBannerPopup("ANCIENT KEY ACQUIRED!", "Proceed to the Master Exit Portal on the North Wall to investigate!");
+      this.game.openDoor("door3");
+      this.game.showBannerPopup("ANCIENT KEY ACQUIRED!", "Key 3 (Obsidian Key) added to inventory! Sanctuary Gateway Unlocked.");
     }
     /* ---------------- ANTIGRAVITY RELIC PUZZLE SOLVERS ---------------- */
     /* ---------------- ANTIGRAVITY RELIC DISCOVERIES (LORE & CLUES) ---------------- */
@@ -33365,7 +33366,7 @@ void main() {
       this.interactables.push(wall);
       return wall;
     }
-    createVaultDoor(x, y, z, w, h, locked = true, label = "Vault Door") {
+    createVaultDoor(x, y, z, w, h, locked = true, label = "Vault Door", requiredKey = null) {
       const group = new Group();
       group.position.set(x, y, z);
       const panelGeo = new BoxGeometry(w / 2, h, 0.35);
@@ -33425,7 +33426,8 @@ void main() {
       doorTrigger.userData = {
         type: "vault_door",
         doorRef: doorObj,
-        label
+        label,
+        requiredKey
       };
       this.interactables.push(doorTrigger);
       return doorObj;
@@ -33541,10 +33543,18 @@ void main() {
             }
           } else if (data.type === "vault_door") {
             if (data.doorRef && data.doorRef.isOpen) {
-              this.showBannerPopup("GATEWAY OPEN", `${data.label} is unlocked. Step through!`);
-            } else {
-              this.showBannerPopup(`${data.label.toUpperCase()} SEALED`, "This massive reinforced portal is locked. Solve this chamber's puzzle to unlock it!");
-              sound.playStoneLocked();
+              this.showBannerPopup("GATEWAY OPEN", `${data.label} is already unlocked. Step through!`);
+            } else if (data.doorRef && !data.doorRef.isOpen) {
+              const reqKey = data.requiredKey;
+              const hasKey = reqKey ? this.state.hasKey(reqKey) : false;
+              if (hasKey || reqKey === "templeKey" && this.state.hasAllKeys()) {
+                data.doorRef.open();
+                sound.playKeyPickup(reqKey === "libraryKey" ? "brass" : reqKey === "observatoryKey" ? "silver" : "obsidian");
+                this.showBannerPopup("DOOR UNLOCKED", `Key used! ${data.label} has opened.`);
+              } else {
+                this.showBannerPopup(`${data.label.toUpperCase()} SEALED`, `This massive reinforced portal is locked. Solve this chamber's puzzle to obtain the key!`);
+                sound.playStoneLocked();
+              }
             }
           }
         }
@@ -34007,8 +34017,13 @@ void main() {
               text = `Master Portal Sealed (${count}/3 Keys Collected \u2014 Requires All 3 Keys)`;
             }
           } else if (type === "vault_door") {
-            if (obj.userData.doorRef && obj.userData.doorRef.isOpen) {
+            const dRef = obj.userData.doorRef;
+            const reqKey = obj.userData.requiredKey;
+            const hasKey = reqKey ? this.state.hasKey(reqKey) : false;
+            if (dRef && dRef.isOpen) {
               text = `${obj.userData.label} [Open \u2014 Walk Through]`;
+            } else if (hasKey || reqKey === "templeKey" && this.state.hasAllKeys()) {
+              text = `[E] Unlock ${obj.userData.label}`;
             } else {
               text = `${obj.userData.label} (Sealed \u2014 Solve Chamber Puzzle to Unlock)`;
             }
