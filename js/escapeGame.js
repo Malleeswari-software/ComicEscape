@@ -46,10 +46,19 @@ export class EscapeGame3D {
 
     // Controls
     this.controls = new PointerLockControls(this.camera, document.body);
-    this.moveState = { forward: false, backward: false, left: false, right: false, sprint: false };
+    this.moveState = {
+      forward: false, backward: false, left: false, right: false, sprint: false,
+      ascend: false, descend: false
+    };
     this.velocity = new THREE.Vector3();
     this.direction = new THREE.Vector3();
     this.clock = new THREE.Clock();
+
+    // Antigravity Feature System (Activated by pressing 'G')
+    this.antigravityActive = false;
+    this.antigravityEnergy = 100;
+    this.targetAltitude = 1.7;
+    this.floatBobTimer = 0;
 
     // World Collections
     this.colliders = [];
@@ -229,6 +238,37 @@ export class EscapeGame3D {
     this.spotLight.visible = this.flashlightOn;
     sound.playFlashlightClick(this.flashlightOn);
     this.showBannerPopup(this.flashlightOn ? "BEAM ON" : "LIGHTS OUT", `[F] toggled flashlight`);
+  }
+
+  toggleAntigravity() {
+    this.antigravityActive = !this.antigravityActive;
+    this.state.state.antigravityActive = this.antigravityActive;
+    this.state.save();
+
+    if (this.antigravityActive) {
+      sound.playAntigravityActivate();
+      this.targetAltitude = Math.max(3.0, this.camera.position.y);
+      this.showBannerPopup(
+        "✨ ANTIGRAVITY [G] ACTIVATED! ✨",
+        "Zero-G field active! [SPACE/Q] Float Up • [SHIFT/C] Glide Down • Glides over chasms!"
+      );
+      if (this.ui) this.ui.updateAntigravityHUD(true);
+      // Volumetric beam shifts to cosmic quantum glow
+      if (this.coneMat) {
+        this.coneMat.color.setHex(0xa855f7);
+        this.coneMat.opacity = 0.22;
+      }
+    } else {
+      sound.playAntigravityDeactivate();
+      this.targetAltitude = 1.7;
+      this.showBannerPopup("GRAVITY RESTORED", "Operative grounded. Press [G] anytime to levitate!");
+      if (this.ui) this.ui.updateAntigravityHUD(false);
+      // Revert beam
+      if (this.coneMat) {
+        this.coneMat.color.setHex(this.lightMode === 'uv' ? 0xa855f7 : (this.lightMode === 'laser' ? 0xf87171 : 0xfff5e6));
+        this.coneMat.opacity = this.lightMode === 'uv' ? 0.16 : (this.lightMode === 'laser' ? 0.28 : 0.07);
+      }
+    }
   }
 
   updateUVEmission(intensity) {
@@ -438,6 +478,27 @@ export class EscapeGame3D {
           this.puzzleManager.triggerFinalExit();
         } else if (data.type === 'comic_wall') {
           this.ui.openJournal();
+        } else if (data.type === 'celestial_grimoire') {
+          if (!this.antigravityActive && this.camera.position.y < 3.2) {
+            this.showBannerPopup("TOO HIGH TO REACH", "Press [G] to activate Antigravity and float up to the Grimoire!");
+            sound.playStoneLocked();
+          } else {
+            this.puzzleManager.solveCelestialGrimoire();
+          }
+        } else if (data.type === 'astral_graviton_prism') {
+          if (!this.antigravityActive && this.camera.position.y < 3.5) {
+            this.showBannerPopup("ASTRAL ORBIT OUT OF REACH", "Press [G] to activate Antigravity and float into the dome!");
+            sound.playStoneLocked();
+          } else {
+            this.puzzleManager.solveAstralGravitonPrism();
+          }
+        } else if (data.type === 'eye_of_horus_tablet') {
+          if (!this.antigravityActive && this.camera.position.y < 3.5) {
+            this.showBannerPopup("SACRED HORUS SEAL", "Press [G] to activate Antigravity and ascend to the Guardian crowns!");
+            sound.playStoneLocked();
+          } else {
+            this.puzzleManager.solveEyeOfHorusTablet();
+          }
         }
       }
     }
@@ -643,6 +704,13 @@ export class EscapeGame3D {
       if (k === 'd' || k === 'arrowright') this.moveState.right = true;
       if (k === 'shift') this.moveState.sprint = true;
 
+      // Antigravity controls: 'g' toggles, space/q ascends, c/shift descends
+      if (k === 'g') this.toggleAntigravity();
+      if (this.antigravityActive) {
+        if (k === ' ' || k === 'q') this.moveState.ascend = true;
+        if (k === 'c') this.moveState.descend = true;
+      }
+
       if (k === '1') this.setLightMode('white');
       if (k === '2') this.setLightMode('uv');
       if (k === '3') this.setLightMode('laser');
@@ -650,7 +718,7 @@ export class EscapeGame3D {
       if (k === 'h') this.ui.toggleHintModal();
       if (k === 'j') this.ui.openJournal();
       if (k === 'escape') this.ui.togglePauseMenu();
-      if (k === 'e' || k === ' ') this.handleInteraction();
+      if (k === 'e' || (!this.antigravityActive && k === ' ')) this.handleInteraction();
     });
 
     window.addEventListener('keyup', e => {
@@ -660,6 +728,8 @@ export class EscapeGame3D {
       if (k === 'a' || k === 'arrowleft') this.moveState.left = false;
       if (k === 'd' || k === 'arrowright') this.moveState.right = false;
       if (k === 'shift') this.moveState.sprint = false;
+      if (k === ' ' || k === 'q') this.moveState.ascend = false;
+      if (k === 'c') this.moveState.descend = false;
     });
 
     // Pointer Lock events
@@ -759,6 +829,11 @@ export class EscapeGame3D {
       this.updateLaserReflection();
       this.updateBattery(delta);
 
+      // Update atmospheric particles & Antigravity vertical streams
+      if (this.architect && this.architect.updateAtmosphere) {
+        this.architect.updateAtmosphere(delta, this.antigravityActive);
+      }
+
       // Rotate keys
       [this.architect.libraryKeyGroup, this.architect.observatoryKeyGroup, this.architect.templeKeyGroup].forEach(kg => {
         if (kg && kg.visible) kg.rotation.y += delta * 1.5;
@@ -797,28 +872,41 @@ export class EscapeGame3D {
       this.battery = Math.min(100, this.battery + 8.0 * delta); // Recharges when off
     }
     this.ui.updateBatteryHUD(Math.round(this.battery));
+
+    // Antigravity Energy Update
+    if (this.antigravityActive) {
+      this.antigravityEnergy = Math.max(15, this.antigravityEnergy - 3.0 * delta);
+    } else {
+      this.antigravityEnergy = Math.min(100, this.antigravityEnergy + 7.5 * delta);
+    }
+    this.state.state.antigravityEnergy = Math.round(this.antigravityEnergy);
   }
 
   updateMovement(delta) {
     if (!this.isLocked) return;
 
-    const speed = this.moveState.sprint ? 7.5 : 4.5;
-    this.velocity.x -= this.velocity.x * 10.0 * delta;
-    this.velocity.z -= this.velocity.z * 10.0 * delta;
+    // In Antigravity: reduced friction, floating glide velocity
+    const speed = this.antigravityActive
+      ? (this.moveState.sprint ? 9.2 : 6.2)
+      : (this.moveState.sprint ? 7.5 : 4.5);
+    const dampening = this.antigravityActive ? 5.2 : 10.0;
+    this.velocity.x -= this.velocity.x * dampening * delta;
+    this.velocity.z -= this.velocity.z * dampening * delta;
 
     this.direction.z = Number(this.moveState.forward) - Number(this.moveState.backward);
     this.direction.x = Number(this.moveState.right) - Number(this.moveState.left);
     this.direction.normalize();
 
+    const accel = this.antigravityActive ? 6.5 : 8.0;
     if (this.moveState.forward || this.moveState.backward) {
-      this.velocity.z -= this.direction.z * speed * 8.0 * delta;
+      this.velocity.z -= this.direction.z * speed * accel * delta;
     }
     if (this.moveState.left || this.moveState.right) {
-      this.velocity.x -= this.direction.x * speed * 8.0 * delta;
+      this.velocity.x -= this.direction.x * speed * accel * delta;
     }
 
     const moving = Math.abs(this.velocity.x) > 0.5 || Math.abs(this.velocity.z) > 0.5;
-    if (moving) {
+    if (moving && !this.antigravityActive) {
       this.footstepTimer += delta;
       const stepInterval = this.moveState.sprint ? 0.3 : 0.45;
       if (this.footstepTimer > stepInterval) {
@@ -829,6 +917,10 @@ export class EscapeGame3D {
         const bob = Math.sin(this.clock.getElapsedTime() * 10) * 0.015;
         this.flashlightMesh.position.y = -0.26 + bob;
       }
+    } else if (this.antigravityActive && this.flashlightMesh) {
+      // Gentle zero-gravity weightless hand drift
+      this.flashlightMesh.position.y = -0.26 + Math.sin(this.floatBobTimer * 2.8) * 0.025;
+      this.flashlightMesh.rotation.z = Math.sin(this.floatBobTimer * 1.4) * 0.04;
     }
 
     const oldX = this.camera.position.x;
@@ -844,7 +936,21 @@ export class EscapeGame3D {
       this.camera.position.z = oldZ;
     }
 
-    this.camera.position.y = 1.7;
+    // Altitude Physics & Vertical Levitation Control
+    if (this.antigravityActive) {
+      if (this.moveState.ascend) {
+        this.targetAltitude = Math.min(5.4, this.targetAltitude + 3.8 * delta);
+      }
+      if (this.moveState.descend) {
+        this.targetAltitude = Math.max(1.7, this.targetAltitude - 3.8 * delta);
+      }
+      this.floatBobTimer += delta;
+      const zeroGBob = Math.sin(this.floatBobTimer * 2.2) * 0.09;
+      this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, this.targetAltitude + zeroGBob, delta * 4.2);
+    } else {
+      this.targetAltitude = 1.7;
+      this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, 1.7, delta * 7.5);
+    }
 
     // Track room based on Z position
     let newLevel = 1;
@@ -870,7 +976,17 @@ export class EscapeGame3D {
     for (let c of this.colliders) {
       if (c.isDoor && c.doorRef && c.doorRef.isOpen) continue;
       if (c.isPortal && this.architect.exitPortal && this.architect.exitPortal.isOpen) continue;
+      // Shadow Chasm check: if player is flying above 2.1m with Antigravity, glide cleanly over!
+      if (c.isChasm) {
+        if (this.antigravityActive && this.camera.position.y >= 2.1) {
+          continue; // Effortlessly glides over the shadow chasm
+        }
+      }
       if (x + R > c.minX && x - R < c.maxX && z + R > c.minZ && z - R < c.maxZ) {
+        if (c.isChasm) {
+          this.showBannerPopup("SHADOW ABYSS BLOCKED!", "The void consumes mortal steps! Press [G] to float across in Antigravity!");
+          sound.playStoneLocked();
+        }
         return true;
       }
     }

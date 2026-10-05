@@ -51,6 +51,13 @@ export class GameStateManager {
         temple: false
       },
       battery: 100, // 0 to 100%
+      antigravityActive: false,
+      antigravityEnergy: 100, // 0 to 100%
+      gravitonSecrets: {
+        library: false,
+        observatory: false,
+        temple: false
+      },
       hintsUsed: 0,
       currentHintTier: 0, // 0: none, 1: directional, 2: interpretation, 3: solution
       gameWon: false,

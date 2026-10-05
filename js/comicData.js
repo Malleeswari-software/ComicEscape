@@ -70,6 +70,11 @@ export const COMIC_DATA = {
         tier: 3,
         title: "Solution Hint",
         text: "Press [E] on the reading table lecterns until: Lectern 1 holds the Falcon Book, Lectern 2 holds the Serpent Book, and Lectern 3 holds the Wolf Book. The Ornate Cabinet will open with Key 1!"
+      },
+      {
+        tier: 4,
+        title: "🌌 Antigravity Secret",
+        text: "Press [G] to activate Antigravity flight! Levitate up toward the vaulted ceiling with [SPACE] to decipher the high Celestial Grimoire, which immediately solves the tome sequence!"
       }
     ]
   },
@@ -140,6 +145,11 @@ export const COMIC_DATA = {
         tier: 3,
         title: "Solution Hint",
         text: "Press [E] facing Mirror Alpha until it reads 45°. Press [E] facing Mirror Beta until it reads 135°. Aim your laser at Mirror Alpha. The light will bounce into the Astral Glyph on the wall and open the key vault!"
+      },
+      {
+        tier: 4,
+        title: "🌌 Antigravity Secret",
+        text: "Press [G] to activate Antigravity flight! Levitate directly into the star dome near the ceiling with [SPACE] to harmonize the high Astral Graviton Prism, auto-aligning both optical mirrors from above!"
       }
     ]
   },
@@ -199,7 +209,7 @@ export const COMIC_DATA = {
       {
         tier: 1,
         title: "Directional Hint",
-        text: "Look at the two stone fire braziers flanking the central altar: Brazier Sol on the right and Brazier Luna on the left."
+        text: "Look at the two stone fire braziers flanking the central altar: Brazier Sol on the right and Brazier Luna on the left. Watch out for the Shadow Abyss on the floor!"
       },
       {
         tier: 2,
@@ -210,6 +220,11 @@ export const COMIC_DATA = {
         tier: 3,
         title: "Solution Hint",
         text: "Press [E] on Brazier Sol and Brazier Luna until both are set to Balanced Flame (50%). The Solar-Lunar Glyph on the altar will illuminate, sliding the stone lid open to reveal Key 3!"
+      },
+      {
+        tier: 4,
+        title: "🌌 Antigravity Secret",
+        text: "Press [G] to float effortlessly over the dark Shadow Abyss! Levitate up with [SPACE] between the Pharaonic crowns to channel the Sacred Eye of Horus Tablet, balancing the fires instantly!"
       }
     ]
   }

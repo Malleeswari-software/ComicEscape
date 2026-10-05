@@ -324,6 +324,7 @@
     }
   };
   var _lut = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b", "0c", "0d", "0e", "0f", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1a", "1b", "1c", "1d", "1e", "1f", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "2a", "2b", "2c", "2d", "2e", "2f", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "3a", "3b", "3c", "3d", "3e", "3f", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "4a", "4b", "4c", "4d", "4e", "4f", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "5a", "5b", "5c", "5d", "5e", "5f", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "6a", "6b", "6c", "6d", "6e", "6f", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "8a", "8b", "8c", "8d", "8e", "8f", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "9a", "9b", "9c", "9d", "9e", "9f", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "aa", "ab", "ac", "ad", "ae", "af", "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "ba", "bb", "bc", "bd", "be", "bf", "c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "ca", "cb", "cc", "cd", "ce", "cf", "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "da", "db", "dc", "dd", "de", "df", "e0", "e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9", "ea", "eb", "ec", "ed", "ee", "ef", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "fa", "fb", "fc", "fd", "fe", "ff"];
+  var _seed = 1234567;
   var DEG2RAD = Math.PI / 180;
   var RAD2DEG = 180 / Math.PI;
   function generateUUID() {
@@ -340,8 +341,101 @@
   function euclideanModulo(n, m) {
     return (n % m + m) % m;
   }
+  function mapLinear(x, a1, a2, b1, b2) {
+    return b1 + (x - a1) * (b2 - b1) / (a2 - a1);
+  }
+  function inverseLerp(x, y, value) {
+    if (x !== y) {
+      return (value - x) / (y - x);
+    } else {
+      return 0;
+    }
+  }
   function lerp(x, y, t) {
     return (1 - t) * x + t * y;
+  }
+  function damp(x, y, lambda, dt) {
+    return lerp(x, y, 1 - Math.exp(-lambda * dt));
+  }
+  function pingpong(x, length = 1) {
+    return length - Math.abs(euclideanModulo(x, length * 2) - length);
+  }
+  function smoothstep(x, min, max) {
+    if (x <= min) return 0;
+    if (x >= max) return 1;
+    x = (x - min) / (max - min);
+    return x * x * (3 - 2 * x);
+  }
+  function smootherstep(x, min, max) {
+    if (x <= min) return 0;
+    if (x >= max) return 1;
+    x = (x - min) / (max - min);
+    return x * x * x * (x * (x * 6 - 15) + 10);
+  }
+  function randInt(low, high) {
+    return low + Math.floor(Math.random() * (high - low + 1));
+  }
+  function randFloat(low, high) {
+    return low + Math.random() * (high - low);
+  }
+  function randFloatSpread(range) {
+    return range * (0.5 - Math.random());
+  }
+  function seededRandom(s) {
+    if (s !== void 0) _seed = s;
+    let t = _seed += 1831565813;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+  function degToRad(degrees) {
+    return degrees * DEG2RAD;
+  }
+  function radToDeg(radians) {
+    return radians * RAD2DEG;
+  }
+  function isPowerOfTwo(value) {
+    return value > 0 && Number.isInteger(value) && 2 ** Math.round(Math.log2(value)) === value;
+  }
+  function ceilPowerOfTwo(value) {
+    return Math.pow(2, Math.ceil(Math.log(value) / Math.LN2));
+  }
+  function floorPowerOfTwo(value) {
+    return Math.pow(2, Math.floor(Math.log(value) / Math.LN2));
+  }
+  function setQuaternionFromProperEuler(q, a, b, c, order) {
+    const cos = Math.cos;
+    const sin = Math.sin;
+    const c2 = cos(b / 2);
+    const s2 = sin(b / 2);
+    const c13 = cos((a + c) / 2);
+    const s13 = sin((a + c) / 2);
+    const c1_3 = cos((a - c) / 2);
+    const s1_3 = sin((a - c) / 2);
+    const c3_1 = cos((c - a) / 2);
+    const s3_1 = sin((c - a) / 2);
+    switch (order) {
+      case "XYX":
+        q.set(c2 * s13, s2 * c1_3, s2 * s1_3, c2 * c13);
+        break;
+      case "YZY":
+        q.set(s2 * s1_3, c2 * s13, s2 * c1_3, c2 * c13);
+        break;
+      case "ZXZ":
+        q.set(s2 * c1_3, s2 * s1_3, c2 * s13, c2 * c13);
+        break;
+      case "XZX":
+        q.set(c2 * s13, s2 * s3_1, s2 * c3_1, c2 * c13);
+        break;
+      case "YXY":
+        q.set(s2 * c3_1, c2 * s13, s2 * s3_1, c2 * c13);
+        break;
+      case "ZYZ":
+        q.set(s2 * s3_1, s2 * c3_1, c2 * s13, c2 * c13);
+        break;
+      default:
+        warn("MathUtils: .setQuaternionFromProperEuler() encountered an unknown order: " + order);
+    }
   }
   function denormalize(value, array) {
     switch (array.constructor) {
@@ -385,6 +479,250 @@
         throw new Error("THREE.MathUtils: Invalid component type.");
     }
   }
+  var MathUtils = {
+    DEG2RAD,
+    RAD2DEG,
+    /**
+     * Generate a [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier)
+     * (universally unique identifier).
+     *
+     * @static
+     * @method
+     * @return {string} The UUID.
+     */
+    generateUUID,
+    /**
+     * Clamps the given value between min and max.
+     *
+     * @static
+     * @method
+     * @param {number} value - The value to clamp.
+     * @param {number} min - The min value.
+     * @param {number} max - The max value.
+     * @return {number} The clamped value.
+     */
+    clamp,
+    /**
+     * Computes the Euclidean modulo of the given parameters that
+     * is `( ( n % m ) + m ) % m`.
+     *
+     * @static
+     * @method
+     * @param {number} n - The first parameter.
+     * @param {number} m - The second parameter.
+     * @return {number} The Euclidean modulo.
+     */
+    euclideanModulo,
+    /**
+     * Performs a linear mapping from range `<a1, a2>` to range `<b1, b2>`
+     * for the given value.
+     *
+     * @static
+     * @method
+     * @param {number} x - The value to be mapped.
+     * @param {number} a1 - Minimum value for range A.
+     * @param {number} a2 - Maximum value for range A.
+     * @param {number} b1 - Minimum value for range B.
+     * @param {number} b2 - Maximum value for range B.
+     * @return {number} The mapped value.
+     */
+    mapLinear,
+    /**
+     * Returns the percentage in the closed interval `[0, 1]` of the given value
+     * between the start and end point.
+     *
+     * @static
+     * @method
+     * @param {number} x - The start point
+     * @param {number} y - The end point.
+     * @param {number} value - A value between start and end.
+     * @return {number} The interpolation factor.
+     */
+    inverseLerp,
+    /**
+     * Returns a value linearly interpolated from two known points based on the given interval -
+     * `t = 0` will return `x` and `t = 1` will return `y`.
+     *
+     * @static
+     * @method
+     * @param {number} x - The start point
+     * @param {number} y - The end point.
+     * @param {number} t - The interpolation factor in the closed interval `[0, 1]`.
+     * @return {number} The interpolated value.
+     */
+    lerp,
+    /**
+     * Smoothly interpolate a number from `x` to `y` in  a spring-like manner using a delta
+     * time to maintain frame rate independent movement. For details, see
+     * [Frame rate independent damping using lerp](http://www.rorydriscoll.com/2016/03/07/frame-rate-independent-damping-using-lerp/).
+     *
+     * @static
+     * @method
+     * @param {number} x - The current point.
+     * @param {number} y - The target point.
+     * @param {number} lambda - A higher lambda value will make the movement more sudden,
+     * and a lower value will make the movement more gradual.
+     * @param {number} dt - Delta time in seconds.
+     * @return {number} The interpolated value.
+     */
+    damp,
+    /**
+     * Returns a value that alternates between `0` and the given `length` parameter.
+     *
+     * @static
+     * @method
+     * @param {number} x - The value to pingpong.
+     * @param {number} [length=1] - The positive value the function will pingpong to.
+     * @return {number} The alternated value.
+     */
+    pingpong,
+    /**
+     * Returns a value in the range `[0,1]` that represents the percentage that `x` has
+     * moved between `min` and `max`, but smoothed or slowed down the closer `x` is to
+     * the `min` and `max`.
+     *
+     * See [Smoothstep](http://en.wikipedia.org/wiki/Smoothstep) for more details.
+     *
+     * @static
+     * @method
+     * @param {number} x - The value to evaluate based on its position between min and max.
+     * @param {number} min - The min value. Any x value below min will be `0`.
+     * @param {number} max - The max value. Any x value above max will be `1`.
+     * @return {number} The alternated value.
+     */
+    smoothstep,
+    /**
+     * A [variation on smoothstep](https://en.wikipedia.org/wiki/Smoothstep#Variations)
+     * that has zero 1st and 2nd order derivatives at x=0 and x=1.
+     *
+     * @static
+     * @method
+     * @param {number} x - The value to evaluate based on its position between min and max.
+     * @param {number} min - The min value. Any x value below min will be `0`.
+     * @param {number} max - The max value. Any x value above max will be `1`.
+     * @return {number} The alternated value.
+     */
+    smootherstep,
+    /**
+     * Returns a random integer from `<low, high>` interval.
+     *
+     * @static
+     * @method
+     * @param {number} low - The lower value boundary.
+     * @param {number} high - The upper value boundary
+     * @return {number} A random integer.
+     */
+    randInt,
+    /**
+     * Returns a random float from `<low, high>` interval.
+     *
+     * @static
+     * @method
+     * @param {number} low - The lower value boundary.
+     * @param {number} high - The upper value boundary
+     * @return {number} A random float.
+     */
+    randFloat,
+    /**
+     * Returns a random integer from `<-range/2, range/2>` interval.
+     *
+     * @static
+     * @method
+     * @param {number} range - Defines the value range.
+     * @return {number} A random float.
+     */
+    randFloatSpread,
+    /**
+     * Returns a deterministic pseudo-random float in the interval `[0, 1]`.
+     *
+     * @static
+     * @method
+     * @param {number} [s] - The integer seed.
+     * @return {number} A random float.
+     */
+    seededRandom,
+    /**
+     * Converts degrees to radians.
+     *
+     * @static
+     * @method
+     * @param {number} degrees - A value in degrees.
+     * @return {number} The converted value in radians.
+     */
+    degToRad,
+    /**
+     * Converts radians to degrees.
+     *
+     * @static
+     * @method
+     * @param {number} radians - A value in radians.
+     * @return {number} The converted value in degrees.
+     */
+    radToDeg,
+    /**
+     * Returns `true` if the given number is a power of two.
+     *
+     * @static
+     * @method
+     * @param {number} value - The value to check.
+     * @return {boolean} Whether the given number is a power of two or not.
+     */
+    isPowerOfTwo,
+    /**
+     * Returns the smallest power of two that is greater than or equal to the given number.
+     *
+     * @static
+     * @method
+     * @param {number} value - The value to find a POT for.
+     * @return {number} The smallest power of two that is greater than or equal to the given number.
+     */
+    ceilPowerOfTwo,
+    /**
+     * Returns the largest power of two that is less than or equal to the given number.
+     *
+     * @static
+     * @method
+     * @param {number} value - The value to find a POT for.
+     * @return {number} The largest power of two that is less than or equal to the given number.
+     */
+    floorPowerOfTwo,
+    /**
+     * Sets the given quaternion from the [Intrinsic Proper Euler Angles](https://en.wikipedia.org/wiki/Euler_angles)
+     * defined by the given angles and order.
+     *
+     * Rotations are applied to the axes in the order specified by order:
+     * rotation by angle `a` is applied first, then by angle `b`, then by angle `c`.
+     *
+     * @static
+     * @method
+     * @param {Quaternion} q - The quaternion to set.
+     * @param {number} a - The rotation applied to the first axis, in radians.
+     * @param {number} b - The rotation applied to the second axis, in radians.
+     * @param {number} c - The rotation applied to the third axis, in radians.
+     * @param {('XYX'|'XZX'|'YXY'|'YZY'|'ZXZ'|'ZYZ')} order - A string specifying the axes order.
+     */
+    setQuaternionFromProperEuler,
+    /**
+     * Normalizes the given value according to the given typed array.
+     *
+     * @static
+     * @method
+     * @param {number} value - The float value in the range `[0,1]` to normalize.
+     * @param {TypedArray} array - The typed array that defines the data type of the value.
+     * @return {number} The normalize value.
+     */
+    normalize,
+    /**
+     * Denormalizes the given value according to the given typed array.
+     *
+     * @static
+     * @method
+     * @param {number} value - The value to denormalize.
+     * @param {TypedArray} array - The typed array that defines the data type of the value.
+     * @return {number} The denormalize (float) value in the range `[0,1]`.
+     */
+    denormalize
+  };
   var Vector2 = class _Vector2 {
     static {
       _Vector2.prototype.isVector2 = true;
@@ -12685,6 +13023,157 @@
       object
     };
   }
+  var PointsMaterial = class extends Material {
+    /**
+     * Constructs a new points material.
+     *
+     * @param {Object} [parameters] - An object with one or more properties
+     * defining the material's appearance. Any property of the material
+     * (including any property from inherited materials) can be passed
+     * in here. Color values can be passed any type of value accepted
+     * by {@link Color#set}.
+     */
+    constructor(parameters) {
+      super();
+      this.isPointsMaterial = true;
+      this.type = "PointsMaterial";
+      this.color = new Color(16777215);
+      this.map = null;
+      this.alphaMap = null;
+      this.size = 1;
+      this.sizeAttenuation = true;
+      this.fog = true;
+      this.setValues(parameters);
+    }
+    copy(source) {
+      super.copy(source);
+      this.color.copy(source.color);
+      this.map = source.map;
+      this.alphaMap = source.alphaMap;
+      this.size = source.size;
+      this.sizeAttenuation = source.sizeAttenuation;
+      this.fog = source.fog;
+      return this;
+    }
+  };
+  var _inverseMatrix = /* @__PURE__ */ new Matrix4();
+  var _ray = /* @__PURE__ */ new Ray();
+  var _sphere = /* @__PURE__ */ new Sphere();
+  var _position$3 = /* @__PURE__ */ new Vector3();
+  var Points = class extends Object3D {
+    /**
+     * Constructs a new point cloud.
+     *
+     * @param {BufferGeometry} [geometry] - The points geometry.
+     * @param {Material|Array<Material>} [material] - The points material.
+     */
+    constructor(geometry = new BufferGeometry(), material = new PointsMaterial()) {
+      super();
+      this.isPoints = true;
+      this.type = "Points";
+      this.geometry = geometry;
+      this.material = material;
+      this.morphTargetDictionary = void 0;
+      this.morphTargetInfluences = void 0;
+      this.updateMorphTargets();
+    }
+    copy(source, recursive) {
+      super.copy(source, recursive);
+      this.material = Array.isArray(source.material) ? source.material.slice() : source.material;
+      this.geometry = source.geometry;
+      return this;
+    }
+    /**
+     * Returns `true` if this point cloud intersects the given frustum.
+     *
+     * @param {Frustum|FrustumArray} frustum - The frustum to test.
+     * @return {boolean} Whether this point cloud intersects the given frustum or not.
+     */
+    intersectsFrustum(frustum) {
+      return frustum.intersectsObject(this);
+    }
+    /**
+     * Computes intersection points between a casted ray and this point cloud.
+     *
+     * @param {Raycaster} raycaster - The raycaster.
+     * @param {Array<Object>} intersects - The target array that holds the intersection points.
+     */
+    raycast(raycaster, intersects) {
+      const geometry = this.geometry;
+      const matrixWorld = this.matrixWorld;
+      const threshold = raycaster.params.Points.threshold;
+      const drawRange = geometry.drawRange;
+      if (geometry.boundingSphere === null) geometry.computeBoundingSphere();
+      _sphere.copy(geometry.boundingSphere);
+      _sphere.applyMatrix4(matrixWorld);
+      _sphere.radius += threshold;
+      if (raycaster.ray.intersectsSphere(_sphere) === false) return;
+      _inverseMatrix.copy(matrixWorld).invert();
+      _ray.copy(raycaster.ray).applyMatrix4(_inverseMatrix);
+      const localThreshold = threshold / ((this.scale.x + this.scale.y + this.scale.z) / 3);
+      const localThresholdSq = localThreshold * localThreshold;
+      const index = geometry.index;
+      const attributes = geometry.attributes;
+      const positionAttribute = attributes.position;
+      if (index !== null) {
+        const start = Math.max(0, drawRange.start);
+        const end = Math.min(index.count, drawRange.start + drawRange.count);
+        for (let i = start, il = end; i < il; i++) {
+          const a = index.getX(i);
+          _position$3.fromBufferAttribute(positionAttribute, a);
+          testPoint(_position$3, a, localThresholdSq, matrixWorld, raycaster, intersects, this);
+        }
+      } else {
+        const start = Math.max(0, drawRange.start);
+        const end = Math.min(positionAttribute.count, drawRange.start + drawRange.count);
+        for (let i = start, l = end; i < l; i++) {
+          _position$3.fromBufferAttribute(positionAttribute, i);
+          testPoint(_position$3, i, localThresholdSq, matrixWorld, raycaster, intersects, this);
+        }
+      }
+    }
+    /**
+     * Sets the values of {@link Points#morphTargetDictionary} and {@link Points#morphTargetInfluences}
+     * to make sure existing morph targets can influence this 3D object.
+     */
+    updateMorphTargets() {
+      const geometry = this.geometry;
+      const morphAttributes = geometry.morphAttributes;
+      const keys = Object.keys(morphAttributes);
+      if (keys.length > 0) {
+        const morphAttribute = morphAttributes[keys[0]];
+        if (morphAttribute !== void 0) {
+          this.morphTargetInfluences = [];
+          this.morphTargetDictionary = {};
+          for (let m = 0, ml = morphAttribute.length; m < ml; m++) {
+            const name = morphAttribute[m].name || String(m);
+            this.morphTargetInfluences.push(0);
+            this.morphTargetDictionary[name] = m;
+          }
+        }
+      }
+    }
+  };
+  function testPoint(point, index, localThresholdSq, matrixWorld, raycaster, intersects, object) {
+    const rayPointDistanceSq = _ray.distanceSqToPoint(point);
+    if (rayPointDistanceSq < localThresholdSq) {
+      const intersectPoint = new Vector3();
+      _ray.closestPointToPoint(point, intersectPoint);
+      intersectPoint.applyMatrix4(matrixWorld);
+      const distance = raycaster.ray.origin.distanceTo(intersectPoint);
+      if (distance < raycaster.near || distance > raycaster.far) return;
+      intersects.push({
+        distance,
+        distanceToRay: Math.sqrt(rayPointDistanceSq),
+        point: intersectPoint,
+        index,
+        face: null,
+        faceIndex: null,
+        barycoord: null,
+        object
+      });
+    }
+  }
   var CubeTexture = class extends Texture {
     /**
      * Constructs a new cube texture.
@@ -13116,6 +13605,252 @@
       return new _ConeGeometry(data.radius, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
     }
   };
+  var PolyhedronGeometry = class _PolyhedronGeometry extends BufferGeometry {
+    /**
+     * Constructs a new polyhedron geometry.
+     *
+     * @param {Array<number>} [vertices] - A flat array of vertices describing the base shape.
+     * @param {Array<number>} [indices] - A flat array of indices describing the base shape.
+     * @param {number} [radius=1] - The radius of the shape.
+     * @param {number} [detail=0] - How many levels to subdivide the geometry. The more detail, the smoother the shape.
+     */
+    constructor(vertices = [], indices = [], radius = 1, detail = 0) {
+      super();
+      this.type = "PolyhedronGeometry";
+      this.parameters = {
+        vertices,
+        indices,
+        radius,
+        detail
+      };
+      const vertexBuffer = [];
+      const uvBuffer = [];
+      subdivide(detail);
+      applyRadius(radius);
+      generateUVs();
+      this.setAttribute("position", new Float32BufferAttribute(vertexBuffer, 3));
+      this.setAttribute("normal", new Float32BufferAttribute(vertexBuffer.slice(), 3));
+      this.setAttribute("uv", new Float32BufferAttribute(uvBuffer, 2));
+      if (detail === 0) {
+        this.computeVertexNormals();
+      } else {
+        this.normalizeNormals();
+      }
+      function subdivide(detail2) {
+        const a = new Vector3();
+        const b = new Vector3();
+        const c = new Vector3();
+        for (let i = 0; i < indices.length; i += 3) {
+          getVertexByIndex(indices[i + 0], a);
+          getVertexByIndex(indices[i + 1], b);
+          getVertexByIndex(indices[i + 2], c);
+          subdivideFace(a, b, c, detail2);
+        }
+      }
+      function subdivideFace(a, b, c, detail2) {
+        const cols = detail2 + 1;
+        const v = [];
+        for (let i = 0; i <= cols; i++) {
+          v[i] = [];
+          const aj = a.clone().lerp(c, i / cols);
+          const bj = b.clone().lerp(c, i / cols);
+          const rows = cols - i;
+          for (let j = 0; j <= rows; j++) {
+            if (j === 0 && i === cols) {
+              v[i][j] = aj;
+            } else {
+              v[i][j] = aj.clone().lerp(bj, j / rows);
+            }
+          }
+        }
+        for (let i = 0; i < cols; i++) {
+          for (let j = 0; j < 2 * (cols - i) - 1; j++) {
+            const k = Math.floor(j / 2);
+            if (j % 2 === 0) {
+              pushVertex(v[i][k + 1]);
+              pushVertex(v[i + 1][k]);
+              pushVertex(v[i][k]);
+            } else {
+              pushVertex(v[i][k + 1]);
+              pushVertex(v[i + 1][k + 1]);
+              pushVertex(v[i + 1][k]);
+            }
+          }
+        }
+      }
+      function applyRadius(radius2) {
+        const vertex2 = new Vector3();
+        for (let i = 0; i < vertexBuffer.length; i += 3) {
+          vertex2.x = vertexBuffer[i + 0];
+          vertex2.y = vertexBuffer[i + 1];
+          vertex2.z = vertexBuffer[i + 2];
+          vertex2.normalize().multiplyScalar(radius2);
+          vertexBuffer[i + 0] = vertex2.x;
+          vertexBuffer[i + 1] = vertex2.y;
+          vertexBuffer[i + 2] = vertex2.z;
+        }
+      }
+      function generateUVs() {
+        const vertex2 = new Vector3();
+        for (let i = 0; i < vertexBuffer.length; i += 3) {
+          vertex2.x = vertexBuffer[i + 0];
+          vertex2.y = vertexBuffer[i + 1];
+          vertex2.z = vertexBuffer[i + 2];
+          const u = azimuth(vertex2) / 2 / Math.PI + 0.5;
+          const v = inclination(vertex2) / Math.PI + 0.5;
+          uvBuffer.push(u, 1 - v);
+        }
+        correctUVs();
+        correctSeam();
+      }
+      function correctSeam() {
+        for (let i = 0; i < uvBuffer.length; i += 6) {
+          const x0 = uvBuffer[i + 0];
+          const x1 = uvBuffer[i + 2];
+          const x2 = uvBuffer[i + 4];
+          const max = Math.max(x0, x1, x2);
+          const min = Math.min(x0, x1, x2);
+          if (max > 0.9 && min < 0.1) {
+            if (x0 < 0.2) uvBuffer[i + 0] += 1;
+            if (x1 < 0.2) uvBuffer[i + 2] += 1;
+            if (x2 < 0.2) uvBuffer[i + 4] += 1;
+          }
+        }
+      }
+      function pushVertex(vertex2) {
+        vertexBuffer.push(vertex2.x, vertex2.y, vertex2.z);
+      }
+      function getVertexByIndex(index, vertex2) {
+        const stride = index * 3;
+        vertex2.x = vertices[stride + 0];
+        vertex2.y = vertices[stride + 1];
+        vertex2.z = vertices[stride + 2];
+      }
+      function correctUVs() {
+        const a = new Vector3();
+        const b = new Vector3();
+        const c = new Vector3();
+        const centroid = new Vector3();
+        const uvA = new Vector2();
+        const uvB = new Vector2();
+        const uvC = new Vector2();
+        for (let i = 0, j = 0; i < vertexBuffer.length; i += 9, j += 6) {
+          a.set(vertexBuffer[i + 0], vertexBuffer[i + 1], vertexBuffer[i + 2]);
+          b.set(vertexBuffer[i + 3], vertexBuffer[i + 4], vertexBuffer[i + 5]);
+          c.set(vertexBuffer[i + 6], vertexBuffer[i + 7], vertexBuffer[i + 8]);
+          uvA.set(uvBuffer[j + 0], uvBuffer[j + 1]);
+          uvB.set(uvBuffer[j + 2], uvBuffer[j + 3]);
+          uvC.set(uvBuffer[j + 4], uvBuffer[j + 5]);
+          centroid.copy(a).add(b).add(c).divideScalar(3);
+          const azi = azimuth(centroid);
+          correctUV(uvA, j + 0, a, azi);
+          correctUV(uvB, j + 2, b, azi);
+          correctUV(uvC, j + 4, c, azi);
+        }
+      }
+      function correctUV(uv, stride, vector, azimuth2) {
+        if (azimuth2 < 0 && uv.x === 1) {
+          uvBuffer[stride] = uv.x - 1;
+        }
+        if (vector.x === 0 && vector.z === 0) {
+          uvBuffer[stride] = azimuth2 / 2 / Math.PI + 0.5;
+        }
+      }
+      function azimuth(vector) {
+        return Math.atan2(vector.z, -vector.x);
+      }
+      function inclination(vector) {
+        return Math.atan2(-vector.y, Math.sqrt(vector.x * vector.x + vector.z * vector.z));
+      }
+    }
+    copy(source) {
+      super.copy(source);
+      this.parameters = Object.assign({}, source.parameters);
+      return this;
+    }
+    /**
+     * Factory method for creating an instance of this class from the given
+     * JSON object.
+     *
+     * @param {Object} data - A JSON object representing the serialized geometry.
+     * @return {PolyhedronGeometry} A new instance.
+     */
+    static fromJSON(data) {
+      return new _PolyhedronGeometry(data.vertices, data.indices, data.radius, data.detail);
+    }
+  };
+  var OctahedronGeometry = class _OctahedronGeometry extends PolyhedronGeometry {
+    /**
+     * Constructs a new octahedron geometry.
+     *
+     * @param {number} [radius=1] - Radius of the octahedron.
+     * @param {number} [detail=0] - Setting this to a value greater than `0` adds vertices making it no longer a octahedron.
+     */
+    constructor(radius = 1, detail = 0) {
+      const vertices = [
+        1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        -1
+      ];
+      const indices = [
+        0,
+        2,
+        4,
+        0,
+        4,
+        3,
+        0,
+        3,
+        5,
+        0,
+        5,
+        2,
+        1,
+        2,
+        5,
+        1,
+        5,
+        3,
+        1,
+        3,
+        4,
+        1,
+        4,
+        2
+      ];
+      super(vertices, indices, radius, detail);
+      this.type = "OctahedronGeometry";
+      this.parameters = {
+        radius,
+        detail
+      };
+    }
+    /**
+     * Factory method for creating an instance of this class from the given
+     * JSON object.
+     *
+     * @param {Object} data - A JSON object representing the serialized geometry.
+     * @return {OctahedronGeometry} A new instance.
+     */
+    static fromJSON(data) {
+      return new _OctahedronGeometry(data.radius, data.detail);
+    }
+  };
   var PlaneGeometry = class _PlaneGeometry extends BufferGeometry {
     /**
      * Constructs a new plane geometry.
@@ -13185,6 +13920,84 @@
      */
     static fromJSON(data) {
       return new _PlaneGeometry(data.width, data.height, data.widthSegments, data.heightSegments);
+    }
+  };
+  var RingGeometry = class _RingGeometry extends BufferGeometry {
+    /**
+     * Constructs a new ring geometry.
+     *
+     * @param {number} [innerRadius=0.5] - The inner radius of the ring.
+     * @param {number} [outerRadius=1] - The outer radius of the ring.
+     * @param {number} [thetaSegments=32] - Number of segments. A higher number means the ring will be more round. Minimum is `3`.
+     * @param {number} [phiSegments=1] - Number of segments per ring segment. Minimum is `1`.
+     * @param {number} [thetaStart=0] - Starting angle in radians.
+     * @param {number} [thetaLength=Math.PI*2] - Central angle in radians.
+     */
+    constructor(innerRadius = 0.5, outerRadius = 1, thetaSegments = 32, phiSegments = 1, thetaStart = 0, thetaLength = Math.PI * 2) {
+      super();
+      this.type = "RingGeometry";
+      this.parameters = {
+        innerRadius,
+        outerRadius,
+        thetaSegments,
+        phiSegments,
+        thetaStart,
+        thetaLength
+      };
+      thetaSegments = Math.max(3, thetaSegments);
+      phiSegments = Math.max(1, phiSegments);
+      const indices = [];
+      const vertices = [];
+      const normals = [];
+      const uvs = [];
+      let radius = innerRadius;
+      const radiusStep = (outerRadius - innerRadius) / phiSegments;
+      const vertex2 = new Vector3();
+      const uv = new Vector2();
+      for (let j = 0; j <= phiSegments; j++) {
+        for (let i = 0; i <= thetaSegments; i++) {
+          const segment = thetaStart + i / thetaSegments * thetaLength;
+          vertex2.x = radius * Math.cos(segment);
+          vertex2.y = radius * Math.sin(segment);
+          vertices.push(vertex2.x, vertex2.y, vertex2.z);
+          normals.push(0, 0, 1);
+          uv.x = (vertex2.x / outerRadius + 1) / 2;
+          uv.y = (vertex2.y / outerRadius + 1) / 2;
+          uvs.push(uv.x, uv.y);
+        }
+        radius += radiusStep;
+      }
+      for (let j = 0; j < phiSegments; j++) {
+        const thetaSegmentLevel = j * (thetaSegments + 1);
+        for (let i = 0; i < thetaSegments; i++) {
+          const segment = i + thetaSegmentLevel;
+          const a = segment;
+          const b = segment + thetaSegments + 1;
+          const c = segment + thetaSegments + 2;
+          const d = segment + 1;
+          indices.push(a, b, d);
+          indices.push(b, c, d);
+        }
+      }
+      this.setIndex(indices);
+      this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+      this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+      this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+    }
+    copy(source) {
+      super.copy(source);
+      this.parameters = Object.assign({}, source.parameters);
+      return this;
+    }
+    /**
+     * Factory method for creating an instance of this class from the given
+     * JSON object.
+     *
+     * @param {Object} data - A JSON object representing the serialized geometry.
+     * @return {RingGeometry} A new instance.
+     */
+    static fromJSON(data) {
+      return new _RingGeometry(data.innerRadius, data.outerRadius, data.thetaSegments, data.phiSegments, data.thetaStart, data.thetaLength);
     }
   };
   var SphereGeometry = class _SphereGeometry extends BufferGeometry {
@@ -28424,10 +29237,10 @@ void main() {
       this.ctx = null;
       this.muted = false;
       this.musicMuted = false;
-      this.masterVolume = 0.9;
-      this.musicVolume = 0.48;
-      this.sfxVolume = 0.85;
-      this.ambienceVolume = 0.45;
+      this.masterVolume = 1;
+      this.musicVolume = 0.82;
+      this.sfxVolume = 0.95;
+      this.ambienceVolume = 0.68;
       this.masterNode = null;
       this.musicGain = null;
       this.sfxGain = null;
@@ -28436,12 +29249,13 @@ void main() {
       this.musicRunning = false;
       this.musicTimer = null;
       this.currentStep = 0;
-      this.tempo = 98;
+      this.tempo = 86;
       this.currentRoom = 1;
       this.ambienceNodes = [];
       this.padOscs = [];
       this.padGain = null;
       this.noiseBuffer = null;
+      this.antigravityHumNode = null;
       this.attachAutoUnlock();
     }
     attachAutoUnlock() {
@@ -28540,18 +29354,19 @@ void main() {
       try {
         const t = this.ctx.currentTime;
         this.padGain = this.ctx.createGain();
-        this.padGain.gain.setValueAtTime(0.24, t);
+        this.padGain.gain.setValueAtTime(0.55, t);
         this.padGain.connect(this.ambienceGain);
-        const freqs = [110, 164.81, 261.63, 293.66];
+        const freqs = [73.42, 110, 146.83, 174.61, 220, 293.66, 349.23];
         this.padOscs = freqs.map((f, idx) => {
           const osc = this.ctx.createOscillator();
           const filter = this.ctx.createBiquadFilter();
           const g = this.ctx.createGain();
-          osc.type = idx % 2 === 0 ? "sawtooth" : "triangle";
-          osc.frequency.setValueAtTime(f + (Math.random() - 0.5) * 1.2, t);
+          osc.type = idx % 2 === 0 ? "triangle" : "sawtooth";
+          osc.frequency.setValueAtTime(f + (Math.random() - 0.5) * 1.8, t);
           filter.type = "lowpass";
-          filter.frequency.setValueAtTime(340, t);
-          g.gain.setValueAtTime(0.14, t);
+          filter.frequency.setValueAtTime(850, t);
+          filter.Q.setValueAtTime(1.5, t);
+          g.gain.setValueAtTime(0.28 / (1 + idx * 0.25), t);
           osc.connect(filter);
           filter.connect(g);
           g.connect(this.padGain);
@@ -28574,24 +29389,26 @@ void main() {
         const droneGain = this.ctx.createGain();
         const filter = this.ctx.createBiquadFilter();
         if (roomNumber === 1) {
-          droneOsc.type = "triangle";
-          droneOsc.frequency.setValueAtTime(55, t);
+          droneOsc.type = "sawtooth";
+          droneOsc.frequency.setValueAtTime(110, t);
           filter.type = "lowpass";
-          filter.frequency.setValueAtTime(220, t);
+          filter.frequency.setValueAtTime(480, t);
+          filter.Q.setValueAtTime(2, t);
         } else if (roomNumber === 2) {
           droneOsc.type = "sine";
-          droneOsc.frequency.setValueAtTime(110, t);
+          droneOsc.frequency.setValueAtTime(216, t);
           filter.type = "bandpass";
           filter.frequency.setValueAtTime(432, t);
-          filter.Q.setValueAtTime(3, t);
+          filter.Q.setValueAtTime(4.2, t);
         } else {
           droneOsc.type = "sawtooth";
-          droneOsc.frequency.setValueAtTime(41.2, t);
+          droneOsc.frequency.setValueAtTime(82.4, t);
           filter.type = "lowpass";
-          filter.frequency.setValueAtTime(130, t);
+          filter.frequency.setValueAtTime(320, t);
+          filter.Q.setValueAtTime(2.5, t);
         }
         droneGain.gain.setValueAtTime(0.01, t);
-        droneGain.gain.linearRampToValueAtTime(0.26, t + 1.5);
+        droneGain.gain.linearRampToValueAtTime(0.42, t + 1.2);
         droneOsc.connect(filter);
         filter.connect(droneGain);
         droneGain.connect(this.ambienceGain);
@@ -28623,14 +29440,14 @@ void main() {
       this.musicRunning = true;
       this.currentStep = 0;
       const chordProgressions = [
-        { bass: 55, chords: [220, 261.63, 329.63, 493.88, 528] },
-        // Am9 (with 528Hz Solfeggio)
-        { bass: 43.65, chords: [174.61, 220, 261.63, 329.63, 493.88] },
-        // Fmaj7#11
-        { bass: 73.42, chords: [146.83, 174.61, 220, 261.63, 392] },
+        { bass: 73.42, harmonics: 146.83, chords: [220, 261.63, 329.63, 392, 528, 587.33] },
         // Dm9
-        { bass: 82.41, chords: [164.81, 220, 246.94, 329.63, 440] }
-        // Esus4
+        { bass: 58.27, harmonics: 116.54, chords: [233.08, 293.66, 349.23, 440, 493.88, 587.33] },
+        // Bbmaj7#11
+        { bass: 98, harmonics: 196, chords: [196, 233.08, 293.66, 349.23, 440, 528] },
+        // Gm9
+        { bass: 110, harmonics: 220, chords: [220, 277.18, 329.63, 392, 466.16, 554.37] }
+        // A7b9
       ];
       const stepDuration = 60 / this.tempo / 2;
       const scheduleStep = () => {
@@ -28640,16 +29457,17 @@ void main() {
         const stepInBar = this.currentStep % 8;
         const harmony = chordProgressions[bar];
         if (stepInBar === 0 || stepInBar === 4) {
-          this.playBassNote(harmony.bass, t, stepDuration * 3.8);
+          this.playBassNote(harmony.bass, harmony.harmonics, t, stepDuration * 3.6);
         }
-        const noteIndex = [0, 2, 1, 3, 4, 2, 3, 1][stepInBar];
-        const freq = harmony.chords[noteIndex];
-        this.playArpNote(freq, t, stepDuration * 2.2);
-        if (stepInBar === 0 || stepInBar === 2) {
+        const notePattern = [0, 2, 4, 1, 5, 3, 4, 2];
+        const noteIdx = notePattern[stepInBar];
+        const freq = harmony.chords[noteIdx];
+        this.playArpNote(freq, t, stepDuration * 2.4);
+        if (stepInBar === 0 || stepInBar === 3 || stepInBar === 6) {
           this.playSubPulse(t);
         }
         this.currentStep++;
-        const nextTime = Math.max(0.05, t + stepDuration - this.ctx.currentTime);
+        const nextTime = Math.max(0.04, t + stepDuration - this.ctx.currentTime);
         this.musicTimer = setTimeout(scheduleStep, nextTime * 1e3);
       };
       scheduleStep();
@@ -28661,24 +29479,35 @@ void main() {
         this.musicTimer = null;
       }
     }
-    playBassNote(freq, time, duration) {
+    playBassNote(fundamental, harmonic, time, duration) {
       if (!this.ctx || this.musicMuted) return;
       try {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const filter = this.ctx.createBiquadFilter();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(freq, time);
-        filter.type = "lowpass";
-        filter.frequency.setValueAtTime(170, time);
-        filter.frequency.exponentialRampToValueAtTime(65, time + duration);
-        gain.gain.setValueAtTime(0.42, time);
-        gain.gain.exponentialRampToValueAtTime(1e-3, time + duration);
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.musicGain);
-        osc.start(time);
-        osc.stop(time + duration);
+        const osc1 = this.ctx.createOscillator();
+        const gain1 = this.ctx.createGain();
+        const filter1 = this.ctx.createBiquadFilter();
+        osc1.type = "sawtooth";
+        osc1.frequency.setValueAtTime(fundamental, time);
+        filter1.type = "lowpass";
+        filter1.frequency.setValueAtTime(320, time);
+        filter1.frequency.exponentialRampToValueAtTime(110, time + duration);
+        filter1.Q.setValueAtTime(2.5, time);
+        gain1.gain.setValueAtTime(0.65, time);
+        gain1.gain.exponentialRampToValueAtTime(1e-3, time + duration);
+        osc1.connect(filter1);
+        filter1.connect(gain1);
+        gain1.connect(this.musicGain);
+        osc1.start(time);
+        osc1.stop(time + duration);
+        const osc2 = this.ctx.createOscillator();
+        const gain2 = this.ctx.createGain();
+        osc2.type = "triangle";
+        osc2.frequency.setValueAtTime(harmonic, time);
+        gain2.gain.setValueAtTime(0.38, time);
+        gain2.gain.exponentialRampToValueAtTime(1e-3, time + duration * 0.7);
+        osc2.connect(gain2);
+        gain2.connect(this.musicGain);
+        osc2.start(time);
+        osc2.stop(time + duration * 0.7);
       } catch (e) {
       }
     }
@@ -28690,15 +29519,26 @@ void main() {
         const filter = this.ctx.createBiquadFilter();
         osc.type = "sine";
         osc.frequency.setValueAtTime(freq, time);
-        filter.type = "lowpass";
-        filter.frequency.setValueAtTime(1600, time);
-        gain.gain.setValueAtTime(0.28, time);
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(freq, time);
+        filter.Q.setValueAtTime(3, time);
+        gain.gain.setValueAtTime(0.48, time);
         gain.gain.exponentialRampToValueAtTime(1e-3, time + duration);
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.musicGain);
         osc.start(time);
         osc.stop(time + duration);
+        const overtone = this.ctx.createOscillator();
+        const oGain = this.ctx.createGain();
+        overtone.type = "triangle";
+        overtone.frequency.setValueAtTime(freq * 2, time);
+        oGain.gain.setValueAtTime(0.18, time);
+        oGain.gain.exponentialRampToValueAtTime(1e-3, time + duration * 0.6);
+        overtone.connect(oGain);
+        oGain.connect(this.musicGain);
+        overtone.start(time);
+        overtone.stop(time + duration * 0.6);
       } catch (e) {
       }
     }
@@ -28707,15 +29547,174 @@ void main() {
       try {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(48, time);
-        osc.frequency.exponentialRampToValueAtTime(26, time + 0.35);
-        gain.gain.setValueAtTime(0.26, time);
-        gain.gain.exponentialRampToValueAtTime(1e-3, time + 0.35);
-        osc.connect(gain);
+        const filter = this.ctx.createBiquadFilter();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(96, time);
+        osc.frequency.exponentialRampToValueAtTime(48, time + 0.38);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(180, time);
+        gain.gain.setValueAtTime(0.42, time);
+        gain.gain.exponentialRampToValueAtTime(1e-3, time + 0.38);
+        osc.connect(filter);
+        filter.connect(gain);
         gain.connect(this.musicGain);
         osc.start(time);
-        osc.stop(time + 0.35);
+        osc.stop(time + 0.38);
+      } catch (e) {
+      }
+    }
+    /* ---------------- ANTIGRAVITY AUDIO SUITE ---------------- */
+    playAntigravityActivate() {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const warpOsc = this.ctx.createOscillator();
+        const warpGain = this.ctx.createGain();
+        const warpFilter = this.ctx.createBiquadFilter();
+        warpOsc.type = "sawtooth";
+        warpOsc.frequency.setValueAtTime(120, t);
+        warpOsc.frequency.exponentialRampToValueAtTime(880, t + 0.9);
+        warpFilter.type = "bandpass";
+        warpFilter.frequency.setValueAtTime(240, t);
+        warpFilter.frequency.exponentialRampToValueAtTime(1400, t + 0.9);
+        warpFilter.Q.setValueAtTime(4.5, t);
+        warpGain.gain.setValueAtTime(0.01, t);
+        warpGain.gain.linearRampToValueAtTime(0.75, t + 0.15);
+        warpGain.gain.exponentialRampToValueAtTime(1e-3, t + 1.2);
+        warpOsc.connect(warpFilter);
+        warpFilter.connect(warpGain);
+        warpGain.connect(this.sfxGain);
+        warpOsc.start(t);
+        warpOsc.stop(t + 1.2);
+        [528, 659.25, 783.99, 1046.5].forEach((f, idx) => {
+          const chimeOsc = this.ctx.createOscillator();
+          const chimeGain = this.ctx.createGain();
+          chimeOsc.type = "sine";
+          chimeOsc.frequency.setValueAtTime(f, t + 0.08 * idx);
+          chimeGain.gain.setValueAtTime(0.35, t + 0.08 * idx);
+          chimeGain.gain.exponentialRampToValueAtTime(1e-3, t + 0.08 * idx + 1.4);
+          chimeOsc.connect(chimeGain);
+          chimeGain.connect(this.sfxGain);
+          chimeOsc.start(t + 0.08 * idx);
+          chimeOsc.stop(t + 0.08 * idx + 1.4);
+        });
+        const sub = this.ctx.createOscillator();
+        const subG = this.ctx.createGain();
+        sub.type = "sine";
+        sub.frequency.setValueAtTime(65, t);
+        sub.frequency.linearRampToValueAtTime(130, t + 0.6);
+        subG.gain.setValueAtTime(0.7, t);
+        subG.gain.exponentialRampToValueAtTime(1e-3, t + 0.9);
+        sub.connect(subG);
+        subG.connect(this.sfxGain);
+        sub.start(t);
+        sub.stop(t + 0.9);
+        this.startAntigravityHum();
+      } catch (e) {
+        console.warn("Antigravity activate sound error:", e);
+      }
+    }
+    playAntigravityDeactivate() {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        this.stopAntigravityHum();
+        const descOsc = this.ctx.createOscillator();
+        const descGain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        descOsc.type = "sawtooth";
+        descOsc.frequency.setValueAtTime(660, t);
+        descOsc.frequency.exponentialRampToValueAtTime(90, t + 0.6);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(1200, t);
+        filter.frequency.linearRampToValueAtTime(200, t + 0.6);
+        descGain.gain.setValueAtTime(0.65, t);
+        descGain.gain.exponentialRampToValueAtTime(1e-3, t + 0.65);
+        descOsc.connect(filter);
+        filter.connect(descGain);
+        descGain.connect(this.sfxGain);
+        descOsc.start(t);
+        descOsc.stop(t + 0.65);
+        const thud = this.ctx.createOscillator();
+        const thudG = this.ctx.createGain();
+        thud.type = "triangle";
+        thud.frequency.setValueAtTime(110, t + 0.4);
+        thud.frequency.exponentialRampToValueAtTime(32, t + 0.7);
+        thudG.gain.setValueAtTime(0.55, t + 0.4);
+        thudG.gain.exponentialRampToValueAtTime(1e-3, t + 0.7);
+        thud.connect(thudG);
+        thudG.connect(this.sfxGain);
+        thud.start(t + 0.4);
+        thud.stop(t + 0.7);
+      } catch (e) {
+      }
+    }
+    startAntigravityHum() {
+      if (this.antigravityHumNode || !this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(196, t);
+        const lfo = this.ctx.createOscillator();
+        const lfoGain = this.ctx.createGain();
+        lfo.frequency.setValueAtTime(1.8, t);
+        lfoGain.gain.setValueAtTime(12, t);
+        lfo.connect(osc.frequency);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(450, t);
+        gain.gain.setValueAtTime(0.01, t);
+        gain.gain.linearRampToValueAtTime(0.25, t + 0.5);
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t);
+        lfo.start(t);
+        this.antigravityHumNode = { osc, lfo, gain };
+      } catch (e) {
+      }
+    }
+    stopAntigravityHum() {
+      if (!this.antigravityHumNode) return;
+      try {
+        const t = this.ctx ? this.ctx.currentTime : 0;
+        if (this.antigravityHumNode.gain && this.ctx) {
+          this.antigravityHumNode.gain.gain.linearRampToValueAtTime(1e-3, t + 0.3);
+        }
+        setTimeout(() => {
+          try {
+            if (this.antigravityHumNode.osc) this.antigravityHumNode.osc.stop();
+            if (this.antigravityHumNode.lfo) this.antigravityHumNode.lfo.stop();
+          } catch (err) {
+          }
+          this.antigravityHumNode = null;
+        }, 350);
+      } catch (e) {
+        this.antigravityHumNode = null;
+      }
+    }
+    playGravitonPickup() {
+      this.ensureContext();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const freqs = [528, 639, 852, 963];
+        freqs.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, t + idx * 0.05);
+          gain.gain.setValueAtTime(0.42, t + idx * 0.05);
+          gain.gain.exponentialRampToValueAtTime(1e-3, t + idx * 0.05 + 1.6);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(t + idx * 0.05);
+          osc.stop(t + idx * 0.05 + 1.6);
+        });
       } catch (e) {
       }
     }
@@ -29467,6 +30466,14 @@ void main() {
         },
         battery: 100,
         // 0 to 100%
+        antigravityActive: false,
+        antigravityEnergy: 100,
+        // 0 to 100%
+        gravitonSecrets: {
+          library: false,
+          observatory: false,
+          temple: false
+        },
         hintsUsed: 0,
         currentHintTier: 0,
         // 0: none, 1: directional, 2: interpretation, 3: solution
@@ -29892,6 +30899,11 @@ void main() {
           tier: 3,
           title: "Solution Hint",
           text: "Press [E] on the reading table lecterns until: Lectern 1 holds the Falcon Book, Lectern 2 holds the Serpent Book, and Lectern 3 holds the Wolf Book. The Ornate Cabinet will open with Key 1!"
+        },
+        {
+          tier: 4,
+          title: "\u{1F30C} Antigravity Secret",
+          text: "Press [G] to activate Antigravity flight! Levitate up toward the vaulted ceiling with [SPACE] to decipher the high Celestial Grimoire, which immediately solves the tome sequence!"
         }
       ]
     },
@@ -29961,6 +30973,11 @@ void main() {
           tier: 3,
           title: "Solution Hint",
           text: "Press [E] facing Mirror Alpha until it reads 45\xB0. Press [E] facing Mirror Beta until it reads 135\xB0. Aim your laser at Mirror Alpha. The light will bounce into the Astral Glyph on the wall and open the key vault!"
+        },
+        {
+          tier: 4,
+          title: "\u{1F30C} Antigravity Secret",
+          text: "Press [G] to activate Antigravity flight! Levitate directly into the star dome near the ceiling with [SPACE] to harmonize the high Astral Graviton Prism, auto-aligning both optical mirrors from above!"
         }
       ]
     },
@@ -30019,7 +31036,7 @@ void main() {
         {
           tier: 1,
           title: "Directional Hint",
-          text: "Look at the two stone fire braziers flanking the central altar: Brazier Sol on the right and Brazier Luna on the left."
+          text: "Look at the two stone fire braziers flanking the central altar: Brazier Sol on the right and Brazier Luna on the left. Watch out for the Shadow Abyss on the floor!"
         },
         {
           tier: 2,
@@ -30030,6 +31047,11 @@ void main() {
           tier: 3,
           title: "Solution Hint",
           text: "Press [E] on Brazier Sol and Brazier Luna until both are set to Balanced Flame (50%). The Solar-Lunar Glyph on the altar will illuminate, sliding the stone lid open to reveal Key 3!"
+        },
+        {
+          tier: 4,
+          title: "\u{1F30C} Antigravity Secret",
+          text: "Press [G] to float effortlessly over the dark Shadow Abyss! Levitate up with [SPACE] between the Pharaonic crowns to channel the Sacred Eye of Horus Tablet, balancing the fires instantly!"
         }
       ]
     }
@@ -30062,13 +31084,23 @@ void main() {
       this.exitPortalSockets = [];
       this.exitDoorPanels = [];
       this.exitVistaMesh = null;
+      this.floatingBooks = [];
+      this.celestialGrimoire = null;
+      this.astralGravitonLens = null;
+      this.eyeOfHorusTablet = null;
+      this.ambientDustSystem = null;
+      this.antigravityStreamSystem = null;
+      this.shadowChasmMesh = null;
+      this.atmosphereTimer = 0;
     }
     buildAll() {
       this.buildGeneralFloorAndCeiling();
+      this.buildParticleAtmosphere();
       this.buildLevel1_Library();
       this.buildLevel2_Observatory();
       this.buildLevel3_Temple();
       this.buildFinalExitPortal();
+      this.buildAntigravityRelics();
     }
     /* ---------------- GENERAL FLOOR & CEILING ---------------- */
     buildGeneralFloorAndCeiling() {
@@ -30130,6 +31162,7 @@ void main() {
       this.createCandleChandelier(0, 5.2, 2);
       this.createMoonlightWindow(-9.8, 3.8, 2);
       this.createReadingTable(0, 0, 1);
+      this.createFloatingBooks(0, 2.4, 1);
       this.createArchiveCabinet(6.5, 0, -7.5);
       this.game.doors["door1"] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal");
     }
@@ -30730,6 +31763,350 @@ void main() {
       keyGroup.userData = { keyType: type };
       return keyGroup;
     }
+    /* ---------------- PARTICLE ATMOSPHERE & ANTIGRAVITY STREAMS ---------------- */
+    createParticleTexture(colorHex = "#ffffff") {
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext("2d");
+      const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0, colorHex);
+      grad.addColorStop(0.35, colorHex);
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 64, 64);
+      return new CanvasTexture(canvas);
+    }
+    buildParticleAtmosphere() {
+      const particleCount = 550;
+      const geo = new BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount; i++) {
+        const x = (Math.random() - 0.5) * 18;
+        const y = 0.5 + Math.random() * 5.5;
+        const z = 10 - Math.random() * 66;
+        positions[i * 3] = x;
+        positions[i * 3 + 1] = y;
+        positions[i * 3 + 2] = z;
+        if (z > -8) {
+          colors[i * 3] = 0.98;
+          colors[i * 3 + 1] = 0.82;
+          colors[i * 3 + 2] = 0.35;
+        } else if (z > -30) {
+          colors[i * 3] = 0.22;
+          colors[i * 3 + 1] = 0.74;
+          colors[i * 3 + 2] = 0.98;
+        } else {
+          colors[i * 3] = 0.85;
+          colors[i * 3 + 1] = 0.35;
+          colors[i * 3 + 2] = 0.95;
+        }
+      }
+      geo.setAttribute("position", new BufferAttribute(positions, 3));
+      geo.setAttribute("color", new BufferAttribute(colors, 3));
+      const pMat = new PointsMaterial({
+        size: 0.18,
+        vertexColors: true,
+        map: this.createParticleTexture("#ffffff"),
+        transparent: true,
+        opacity: 0.65,
+        blending: AdditiveBlending,
+        depthWrite: false
+      });
+      this.ambientDustSystem = new Points(geo, pMat);
+      this.scene.add(this.ambientDustSystem);
+      const gravCount = 400;
+      const gGeo = new BufferGeometry();
+      const gPositions = new Float32Array(gravCount * 3);
+      for (let i = 0; i < gravCount; i++) {
+        gPositions[i * 3] = (Math.random() - 0.5) * 16;
+        gPositions[i * 3 + 1] = Math.random() * 6;
+        gPositions[i * 3 + 2] = 8 - Math.random() * 62;
+      }
+      gGeo.setAttribute("position", new BufferAttribute(gPositions, 3));
+      const gMat = new PointsMaterial({
+        size: 0.24,
+        color: 3718648,
+        map: this.createParticleTexture("#38bdf8"),
+        transparent: true,
+        opacity: 0.4,
+        blending: AdditiveBlending,
+        depthWrite: false
+      });
+      this.antigravityStreamSystem = new Points(gGeo, gMat);
+      this.scene.add(this.antigravityStreamSystem);
+    }
+    /* ---------------- ANTIGRAVITY HIGH-ALTITUDE RELICS ---------------- */
+    buildAntigravityRelics() {
+      this.createCelestialGrimoire(0, 4.3, 2);
+      this.createAstralGravitonPrism(0, 4.8, -20);
+      this.createEyeOfHorusTablet(0, 4.6, -38);
+      this.createShadowChasm(-34);
+    }
+    createFloatingBooks(x, y, z) {
+      const bookColors = [9647082, 165063, 16096779, 1096065];
+      [-2.2, -0.8, 0.8, 2.2].forEach((offsetX, idx) => {
+        const group = new Group();
+        group.position.set(x + offsetX, y + (idx % 2 === 0 ? 0.3 : -0.2), z + (idx % 2 === 0 ? 0.8 : -0.8));
+        const pageMat = new MeshStandardMaterial({
+          color: 16707722,
+          emissive: bookColors[idx],
+          emissiveIntensity: 0.4,
+          roughness: 0.5
+        });
+        const leftPage = new Mesh(new BoxGeometry(0.5, 0.04, 0.7), pageMat);
+        leftPage.position.set(-0.24, 0, 0);
+        leftPage.rotation.z = Math.PI / 16;
+        const rightPage = new Mesh(new BoxGeometry(0.5, 0.04, 0.7), pageMat);
+        rightPage.position.set(0.24, 0, 0);
+        rightPage.rotation.z = -Math.PI / 16;
+        group.add(leftPage);
+        group.add(rightPage);
+        this.scene.add(group);
+        this.floatingBooks.push({
+          group,
+          baseY: group.position.y,
+          speed: 1.2 + idx * 0.3,
+          rotSpeed: 0.4 + idx * 0.2
+        });
+      });
+    }
+    createCelestialGrimoire(x, y, z) {
+      const group = new Group();
+      group.position.set(x, y, z);
+      const ringMat = new MeshBasicMaterial({
+        color: 16436245,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.85
+      });
+      const ring = new Mesh(new TorusGeometry(1.2, 0.04, 8, 32), ringMat);
+      ring.rotation.x = Math.PI / 2;
+      group.add(ring);
+      const discGeo = new RingGeometry(0.3, 1.1, 16);
+      const discMat = new MeshBasicMaterial({
+        color: 11032055,
+        transparent: true,
+        opacity: 0.55,
+        side: DoubleSide
+      });
+      const disc = new Mesh(discGeo, discMat);
+      disc.rotation.x = Math.PI / 2;
+      group.add(disc);
+      const tomeMat = new MeshStandardMaterial({
+        color: 4988309,
+        emissive: 16436245,
+        emissiveIntensity: 0.5,
+        roughness: 0.4,
+        metalness: 0.4
+      });
+      const tome = new Mesh(new BoxGeometry(1.2, 0.25, 1.5), tomeMat);
+      group.add(tome);
+      const cornerMat = new MeshStandardMaterial({ color: 16096779, metalness: 0.9, roughness: 0.1 });
+      [-0.55, 0.55].forEach((cx) => {
+        [-0.7, 0.7].forEach((cz) => {
+          const c = new Mesh(new BoxGeometry(0.18, 0.28, 0.18), cornerMat);
+          c.position.set(cx, 0, cz);
+          group.add(c);
+        });
+      });
+      const light = new PointLight(16436245, 2.8, 14, 1.4);
+      light.position.set(0, 0.4, 0);
+      group.add(light);
+      const trigger = new Mesh(new BoxGeometry(2.4, 2.4, 2.4), new MeshBasicMaterial({ visible: false }));
+      trigger.userData = {
+        type: "celestial_grimoire",
+        prompt: "[E] Decipher Celestial Antigravity Grimoire"
+      };
+      this.game.interactables.push(trigger);
+      group.add(trigger);
+      this.scene.add(group);
+      this.celestialGrimoire = { group, ring, disc, tome, light, baseY: y };
+    }
+    createAstralGravitonPrism(x, y, z) {
+      const group = new Group();
+      group.position.set(x, y, z);
+      const crystalGeo = new OctahedronGeometry(1, 0);
+      const crystalMat = new MeshStandardMaterial({
+        color: 3718648,
+        emissive: 165063,
+        emissiveIntensity: 0.75,
+        metalness: 0.95,
+        roughness: 0.08,
+        transparent: true,
+        opacity: 0.92
+      });
+      const crystal = new Mesh(crystalGeo, crystalMat);
+      group.add(crystal);
+      const orbiters = [];
+      const orbGeo = new SphereGeometry(0.14, 16, 16);
+      const orbMat = new MeshBasicMaterial({ color: 16707722 });
+      for (let i = 0; i < 3; i++) {
+        const orb = new Mesh(orbGeo, orbMat);
+        group.add(orb);
+        orbiters.push(orb);
+      }
+      const light = new PointLight(3718648, 3.2, 16, 1.2);
+      group.add(light);
+      const trigger = new Mesh(new BoxGeometry(2.6, 2.6, 2.6), new MeshBasicMaterial({ visible: false }));
+      trigger.userData = {
+        type: "astral_graviton_prism",
+        prompt: "[E] Harmonize Astral Graviton Prism"
+      };
+      this.game.interactables.push(trigger);
+      group.add(trigger);
+      this.scene.add(group);
+      this.astralGravitonLens = { group, crystal, orbiters, light, baseY: y };
+    }
+    createEyeOfHorusTablet(x, y, z) {
+      const group = new Group();
+      group.position.set(x, y, z);
+      const slabMat = new MeshStandardMaterial({
+        color: 1981066,
+        emissive: 16096779,
+        emissiveIntensity: 0.45,
+        metalness: 0.8,
+        roughness: 0.25
+      });
+      const slab = new Mesh(new BoxGeometry(1.8, 1.4, 0.2), slabMat);
+      group.add(slab);
+      const frameMat = new MeshStandardMaterial({ color: 16096779, metalness: 0.95, roughness: 0.15 });
+      const topFrame = new Mesh(new ConeGeometry(0.4, 0.6, 4), frameMat);
+      topFrame.position.set(0, 0.9, 0);
+      group.add(topFrame);
+      const eyeCanvas = document.createElement("canvas");
+      eyeCanvas.width = 256;
+      eyeCanvas.height = 256;
+      const ectx = eyeCanvas.getContext("2d");
+      ectx.fillStyle = "#0f172a";
+      ectx.fillRect(0, 0, 256, 256);
+      ectx.fillStyle = "#facc15";
+      ectx.font = "900 80px sans-serif";
+      ectx.textAlign = "center";
+      ectx.textBaseline = "middle";
+      ectx.fillText("\u{13080}", 128, 128);
+      const eyeTex = new CanvasTexture(eyeCanvas);
+      const eyePlane = new Mesh(
+        new PlaneGeometry(1.2, 1),
+        new MeshStandardMaterial({ map: eyeTex, emissive: 16096779, emissiveIntensity: 0.6 })
+      );
+      eyePlane.position.set(0, 0, 0.12);
+      group.add(eyePlane);
+      const light = new PointLight(16096779, 2.6, 14, 1.2);
+      group.add(light);
+      const trigger = new Mesh(new BoxGeometry(2.6, 2.6, 2.6), new MeshBasicMaterial({ visible: false }));
+      trigger.userData = {
+        type: "eye_of_horus_tablet",
+        prompt: "[E] Channel Eye of Horus Graviton Seal"
+      };
+      this.game.interactables.push(trigger);
+      group.add(trigger);
+      this.scene.add(group);
+      this.eyeOfHorusTablet = { group, slab, eyePlane, light, baseY: y };
+    }
+    createShadowChasm(z) {
+      const group = new Group();
+      group.position.set(0, 0.04, z);
+      const chasmCanvas = document.createElement("canvas");
+      chasmCanvas.width = 512;
+      chasmCanvas.height = 128;
+      const cctx = chasmCanvas.getContext("2d");
+      cctx.fillStyle = "#020617";
+      cctx.fillRect(0, 0, 512, 128);
+      cctx.strokeStyle = "#a855f7";
+      cctx.lineWidth = 4;
+      for (let i = 0; i < 6; i++) {
+        cctx.beginPath();
+        cctx.arc(256 + (i - 2.5) * 80, 64, 45, 0, Math.PI * 2);
+        cctx.stroke();
+      }
+      const cTex = new CanvasTexture(chasmCanvas);
+      const chasmMat = new MeshStandardMaterial({
+        map: cTex,
+        color: 328218,
+        emissive: 8141549,
+        emissiveIntensity: 0.6,
+        roughness: 0.3
+      });
+      const chasmMesh = new Mesh(new PlaneGeometry(19, 3.2), chasmMat);
+      chasmMesh.rotation.x = -Math.PI / 2;
+      group.add(chasmMesh);
+      const borderMat = new MeshBasicMaterial({ color: 15680580 });
+      const b1 = new Mesh(new BoxGeometry(19, 0.1, 0.1), borderMat);
+      b1.position.set(0, 0.05, -1.6);
+      const b2 = new Mesh(new BoxGeometry(19, 0.1, 0.1), borderMat);
+      b2.position.set(0, 0.05, 1.6);
+      group.add(b1);
+      group.add(b2);
+      this.scene.add(group);
+      this.shadowChasmMesh = chasmMesh;
+      this.game.colliders.push({
+        minX: -9.5,
+        maxX: 9.5,
+        minZ: z - 1.4,
+        maxZ: z + 1.4,
+        isChasm: true
+      });
+    }
+    updateAtmosphere(delta, antigravityActive) {
+      this.atmosphereTimer += delta;
+      if (this.ambientDustSystem) {
+        const pos = this.ambientDustSystem.geometry.attributes.position.array;
+        for (let i = 1; i < pos.length; i += 3) {
+          if (antigravityActive) {
+            pos[i] += delta * 2.2;
+            if (pos[i] > 6.4) pos[i] = 0.4;
+          } else {
+            pos[i] += Math.sin(this.atmosphereTimer + i) * delta * 0.15;
+          }
+        }
+        this.ambientDustSystem.geometry.attributes.position.needsUpdate = true;
+      }
+      if (this.antigravityStreamSystem) {
+        const gPos = this.antigravityStreamSystem.geometry.attributes.position.array;
+        const speed = antigravityActive ? 5.5 : 0.4;
+        this.antigravityStreamSystem.material.opacity = antigravityActive ? 0.85 : 0.25;
+        for (let i = 1; i < gPos.length; i += 3) {
+          gPos[i] += delta * speed;
+          if (gPos[i] > 6.4) gPos[i] = 0.2;
+        }
+        this.antigravityStreamSystem.geometry.attributes.position.needsUpdate = true;
+      }
+      this.floatingBooks.forEach((fb, idx) => {
+        const bobAmp = antigravityActive ? 0.45 : 0.12;
+        fb.group.position.y = fb.baseY + Math.sin(this.atmosphereTimer * fb.speed) * bobAmp;
+        fb.group.rotation.y += delta * fb.rotSpeed * (antigravityActive ? 2.5 : 0.8);
+        if (antigravityActive) {
+          fb.group.rotation.z = Math.sin(this.atmosphereTimer * 1.5 + idx) * 0.2;
+        }
+      });
+      if (this.celestialGrimoire) {
+        const cg = this.celestialGrimoire;
+        cg.group.position.y = cg.baseY + Math.sin(this.atmosphereTimer * 1.8) * (antigravityActive ? 0.35 : 0.15);
+        cg.ring.rotation.z += delta * 1.2;
+        cg.disc.rotation.z -= delta * 0.9;
+        cg.tome.rotation.y += delta * 0.5;
+      }
+      if (this.astralGravitonLens) {
+        const ag = this.astralGravitonLens;
+        ag.group.position.y = ag.baseY + Math.sin(this.atmosphereTimer * 2.2) * (antigravityActive ? 0.3 : 0.1);
+        ag.crystal.rotation.x += delta * 1;
+        ag.crystal.rotation.y += delta * 1.4;
+        ag.orbiters.forEach((orb, i) => {
+          const angle = this.atmosphereTimer * 2.5 + i * Math.PI * 2 / 3;
+          orb.position.set(Math.cos(angle) * 1.8, Math.sin(angle * 1.2) * 0.5, Math.sin(angle) * 1.8);
+        });
+      }
+      if (this.eyeOfHorusTablet) {
+        const et = this.eyeOfHorusTablet;
+        et.group.position.y = et.baseY + Math.sin(this.atmosphereTimer * 1.5) * (antigravityActive ? 0.28 : 0.1);
+        et.group.rotation.y = Math.sin(this.atmosphereTimer * 0.8) * 0.25;
+      }
+      if (this.shadowChasmMesh) {
+        this.shadowChasmMesh.material.emissiveIntensity = 0.5 + Math.sin(this.atmosphereTimer * 3) * 0.35;
+      }
+    }
   };
 
   // js/puzzles.js
@@ -30867,8 +32244,56 @@ void main() {
       this.game.hideTempleKeyMesh();
       this.game.showBannerPopup("ANCIENT KEY ACQUIRED!", "Proceed to the Master Exit Portal on the North Wall to investigate!");
     }
+    /* ---------------- ANTIGRAVITY RELIC PUZZLE SOLVERS ---------------- */
+    solveCelestialGrimoire() {
+      this.state.state.gravitonSecrets.library = true;
+      sound.playGravitonPickup();
+      sound.playSingingBowl(528, 3.5);
+      this.state.state.puzzles.libraryBooks = ["falcon", "serpent", "wolf"];
+      this.state.save();
+      [0, 1, 2].forEach((idx) => {
+        this.game.updateLecternVisuals(idx, this.state.state.puzzles.libraryBooks[idx]);
+      });
+      this.solveLibraryPuzzle();
+      this.game.showBannerPopup(
+        "\u{1F31F} CELESTIAL GRIMOIRE DECIPHERED!",
+        "Antigravity Flight achieved! The sacred sequence [Falcon \u2794 Serpent \u2794 Wolf] is inscribed!"
+      );
+    }
+    solveAstralGravitonPrism() {
+      this.state.state.gravitonSecrets.observatory = true;
+      sound.playGravitonPickup();
+      this.state.state.puzzles.mirrorAlphaAngle = 45;
+      this.state.state.puzzles.mirrorBetaAngle = 135;
+      this.state.save();
+      this.game.setMirrorAngle("alpha", 45);
+      this.game.setMirrorAngle("beta", 135);
+      if (this.game.architect.astralSensor) {
+        this.game.architect.astralSensor.hit();
+        this.game.architect.astralSensor.hit();
+        this.game.architect.astralSensor.hit();
+      }
+      this.solveObservatoryPuzzle();
+      this.game.showBannerPopup(
+        "\u2728 ASTRAL GRAVITON PRISM HARMONIZED!",
+        "Zero-G alignment successful! Starlight vectors refracted directly into the Celestial Sensor!"
+      );
+    }
+    solveEyeOfHorusTablet() {
+      this.state.state.gravitonSecrets.temple = true;
+      sound.playGravitonPickup();
+      this.state.state.puzzles.brazierSol = 50;
+      this.state.state.puzzles.brazierLuna = 50;
+      this.state.save();
+      this.game.setBrazierFlame("sol", 50);
+      this.game.setBrazierFlame("luna", 50);
+      this.solveTemplePuzzle();
+      this.game.showBannerPopup(
+        "\u{1F441}\uFE0F EYE OF HORUS CHANNELLED!",
+        "Sacred Antigravity Seal engaged! Solar and Lunar fires locked in harmonic 50/50 equilibrium!"
+      );
+    }
     /* ---------------- MASTER EXIT PORTAL: DRAMATIC PLOT TWIST ---------------- */
-    // The final portal opens WITHOUT ANY KEYS through a dramatic revelation!
     triggerFinalExit() {
       if (this.state.state.puzzles.exitPortalUnlocked) return;
       this.state.state.puzzles.exitPortalUnlocked = true;
@@ -30899,12 +32324,15 @@ void main() {
       this.hudKeys = document.getElementById("hud-keys");
       this.timerEl = document.getElementById("timer");
       this.batteryFill = document.getElementById("battery-fill");
+      this.btnAntigrav = document.getElementById("btn-toggle-antigrav");
+      this.antigravBtnText = document.getElementById("antigrav-btn-text");
       this.btnHints = document.getElementById("btn-toggle-hints");
       this.btnJournal = document.getElementById("btn-toggle-journal");
       this.btnMusic = document.getElementById("btn-toggle-music");
       this.btnPause = document.getElementById("btn-pause-menu");
       this.promptHint = document.getElementById("prompt-hint");
       this.popupBanner = document.getElementById("comic-popup-banner");
+      this.zeroGVignette = document.getElementById("zero-g-vignette");
       this.setupModal = document.getElementById("setup-modal");
       this.comicModal = document.getElementById("comic-modal");
       this.hintModal = document.getElementById("hint-dossier-box");
@@ -30940,6 +32368,12 @@ void main() {
           card.classList.add("selected");
         });
       });
+      if (this.btnAntigrav) {
+        this.btnAntigrav.addEventListener("click", () => {
+          sound.ensureContext();
+          this.game.toggleAntigravity();
+        });
+      }
       if (this.btnHints) this.btnHints.addEventListener("click", () => this.toggleHintModal());
       if (this.btnJournal) this.btnJournal.addEventListener("click", () => this.openJournal());
       if (this.btnMusic) {
@@ -31001,7 +32435,9 @@ void main() {
         { id: "test-sfx-obsidian", fn: () => sound.playKeyPickup("obsidian") },
         { id: "test-sfx-bowl", fn: () => sound.playSingingBowl(528, 4) },
         { id: "test-sfx-whisper", fn: () => sound.playMysticWhisper() },
-        { id: "test-sfx-chime", fn: () => sound.playMysticChime() }
+        { id: "test-sfx-chime", fn: () => sound.playMysticChime() },
+        { id: "test-sfx-antigrav", fn: () => sound.playAntigravityActivate() },
+        { id: "test-sfx-graviton", fn: () => sound.playGravitonPickup() }
       ];
       sfxButtons.forEach(({ id, fn }) => {
         const btn = document.getElementById(id);
@@ -31311,6 +32747,14 @@ void main() {
         bindTouch(btnDown, "backward");
         bindTouch(btnLeft, "left");
         bindTouch(btnRight, "right");
+        const mobAntigrav = document.getElementById("mob-btn-antigrav");
+        if (mobAntigrav) {
+          mobAntigrav.addEventListener("click", () => this.game.toggleAntigravity());
+          mobAntigrav.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            this.game.toggleAntigravity();
+          });
+        }
         const mobInteract = document.getElementById("mob-btn-interact");
         if (mobInteract) mobInteract.addEventListener("click", () => this.game.handleInteraction());
         const mobFlash = document.getElementById("mob-btn-flash");
@@ -31323,6 +32767,18 @@ void main() {
             this.game.setLightMode(next);
           });
         }
+      }
+    }
+    /* ---------------- ANTIGRAVITY HUD UPDATER ---------------- */
+    updateAntigravityHUD(active) {
+      if (this.btnAntigrav) {
+        this.btnAntigrav.classList.toggle("active", active);
+      }
+      if (this.antigravBtnText) {
+        this.antigravBtnText.innerText = active ? "\u{1F30C} ANTIGRAVITY: ACTIVE" : "\u{1F30C} ANTIGRAVITY [G]: READY";
+      }
+      if (this.zeroGVignette) {
+        this.zeroGVignette.classList.toggle("active", active);
       }
     }
     /* ---------------- VICTORY SCREEN WITH PLOT TWIST ---------------- */
@@ -31376,10 +32832,22 @@ void main() {
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = PCFSoftShadowMap;
       this.controls = new PointerLockControls(this.camera, document.body);
-      this.moveState = { forward: false, backward: false, left: false, right: false, sprint: false };
+      this.moveState = {
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        sprint: false,
+        ascend: false,
+        descend: false
+      };
       this.velocity = new Vector3();
       this.direction = new Vector3();
       this.clock = new Clock();
+      this.antigravityActive = false;
+      this.antigravityEnergy = 100;
+      this.targetAltitude = 1.7;
+      this.floatBobTimer = 0;
       this.colliders = [];
       this.interactables = [];
       this.comicWallMaterials = [];
@@ -31519,6 +32987,33 @@ void main() {
       this.spotLight.visible = this.flashlightOn;
       sound.playFlashlightClick(this.flashlightOn);
       this.showBannerPopup(this.flashlightOn ? "BEAM ON" : "LIGHTS OUT", `[F] toggled flashlight`);
+    }
+    toggleAntigravity() {
+      this.antigravityActive = !this.antigravityActive;
+      this.state.state.antigravityActive = this.antigravityActive;
+      this.state.save();
+      if (this.antigravityActive) {
+        sound.playAntigravityActivate();
+        this.targetAltitude = Math.max(3, this.camera.position.y);
+        this.showBannerPopup(
+          "\u2728 ANTIGRAVITY [G] ACTIVATED! \u2728",
+          "Zero-G field active! [SPACE/Q] Float Up \u2022 [SHIFT/C] Glide Down \u2022 Glides over chasms!"
+        );
+        if (this.ui) this.ui.updateAntigravityHUD(true);
+        if (this.coneMat) {
+          this.coneMat.color.setHex(11032055);
+          this.coneMat.opacity = 0.22;
+        }
+      } else {
+        sound.playAntigravityDeactivate();
+        this.targetAltitude = 1.7;
+        this.showBannerPopup("GRAVITY RESTORED", "Operative grounded. Press [G] anytime to levitate!");
+        if (this.ui) this.ui.updateAntigravityHUD(false);
+        if (this.coneMat) {
+          this.coneMat.color.setHex(this.lightMode === "uv" ? 11032055 : this.lightMode === "laser" ? 16281969 : 16774630);
+          this.coneMat.opacity = this.lightMode === "uv" ? 0.16 : this.lightMode === "laser" ? 0.28 : 0.07;
+        }
+      }
     }
     updateUVEmission(intensity) {
       this.comicWallMaterials.forEach((mat) => {
@@ -31705,6 +33200,27 @@ void main() {
             this.puzzleManager.triggerFinalExit();
           } else if (data.type === "comic_wall") {
             this.ui.openJournal();
+          } else if (data.type === "celestial_grimoire") {
+            if (!this.antigravityActive && this.camera.position.y < 3.2) {
+              this.showBannerPopup("TOO HIGH TO REACH", "Press [G] to activate Antigravity and float up to the Grimoire!");
+              sound.playStoneLocked();
+            } else {
+              this.puzzleManager.solveCelestialGrimoire();
+            }
+          } else if (data.type === "astral_graviton_prism") {
+            if (!this.antigravityActive && this.camera.position.y < 3.5) {
+              this.showBannerPopup("ASTRAL ORBIT OUT OF REACH", "Press [G] to activate Antigravity and float into the dome!");
+              sound.playStoneLocked();
+            } else {
+              this.puzzleManager.solveAstralGravitonPrism();
+            }
+          } else if (data.type === "eye_of_horus_tablet") {
+            if (!this.antigravityActive && this.camera.position.y < 3.5) {
+              this.showBannerPopup("SACRED HORUS SEAL", "Press [G] to activate Antigravity and ascend to the Guardian crowns!");
+              sound.playStoneLocked();
+            } else {
+              this.puzzleManager.solveEyeOfHorusTablet();
+            }
           }
         }
       }
@@ -31874,6 +33390,11 @@ void main() {
         if (k === "a" || k === "arrowleft") this.moveState.left = true;
         if (k === "d" || k === "arrowright") this.moveState.right = true;
         if (k === "shift") this.moveState.sprint = true;
+        if (k === "g") this.toggleAntigravity();
+        if (this.antigravityActive) {
+          if (k === " " || k === "q") this.moveState.ascend = true;
+          if (k === "c") this.moveState.descend = true;
+        }
         if (k === "1") this.setLightMode("white");
         if (k === "2") this.setLightMode("uv");
         if (k === "3") this.setLightMode("laser");
@@ -31881,7 +33402,7 @@ void main() {
         if (k === "h") this.ui.toggleHintModal();
         if (k === "j") this.ui.openJournal();
         if (k === "escape") this.ui.togglePauseMenu();
-        if (k === "e" || k === " ") this.handleInteraction();
+        if (k === "e" || !this.antigravityActive && k === " ") this.handleInteraction();
       });
       window.addEventListener("keyup", (e) => {
         const k = e.key.toLowerCase();
@@ -31890,6 +33411,8 @@ void main() {
         if (k === "a" || k === "arrowleft") this.moveState.left = false;
         if (k === "d" || k === "arrowright") this.moveState.right = false;
         if (k === "shift") this.moveState.sprint = false;
+        if (k === " " || k === "q") this.moveState.ascend = false;
+        if (k === "c") this.moveState.descend = false;
       });
       this.controls.addEventListener("lock", () => {
         this.isLocked = true;
@@ -31971,6 +33494,9 @@ void main() {
         this.updateDoors(delta);
         this.updateLaserReflection();
         this.updateBattery(delta);
+        if (this.architect && this.architect.updateAtmosphere) {
+          this.architect.updateAtmosphere(delta, this.antigravityActive);
+        }
         [this.architect.libraryKeyGroup, this.architect.observatoryKeyGroup, this.architect.templeKeyGroup].forEach((kg) => {
           if (kg && kg.visible) kg.rotation.y += delta * 1.5;
         });
@@ -32000,23 +33526,31 @@ void main() {
         this.battery = Math.min(100, this.battery + 8 * delta);
       }
       this.ui.updateBatteryHUD(Math.round(this.battery));
+      if (this.antigravityActive) {
+        this.antigravityEnergy = Math.max(15, this.antigravityEnergy - 3 * delta);
+      } else {
+        this.antigravityEnergy = Math.min(100, this.antigravityEnergy + 7.5 * delta);
+      }
+      this.state.state.antigravityEnergy = Math.round(this.antigravityEnergy);
     }
     updateMovement(delta) {
       if (!this.isLocked) return;
-      const speed = this.moveState.sprint ? 7.5 : 4.5;
-      this.velocity.x -= this.velocity.x * 10 * delta;
-      this.velocity.z -= this.velocity.z * 10 * delta;
+      const speed = this.antigravityActive ? this.moveState.sprint ? 9.2 : 6.2 : this.moveState.sprint ? 7.5 : 4.5;
+      const dampening = this.antigravityActive ? 5.2 : 10;
+      this.velocity.x -= this.velocity.x * dampening * delta;
+      this.velocity.z -= this.velocity.z * dampening * delta;
       this.direction.z = Number(this.moveState.forward) - Number(this.moveState.backward);
       this.direction.x = Number(this.moveState.right) - Number(this.moveState.left);
       this.direction.normalize();
+      const accel = this.antigravityActive ? 6.5 : 8;
       if (this.moveState.forward || this.moveState.backward) {
-        this.velocity.z -= this.direction.z * speed * 8 * delta;
+        this.velocity.z -= this.direction.z * speed * accel * delta;
       }
       if (this.moveState.left || this.moveState.right) {
-        this.velocity.x -= this.direction.x * speed * 8 * delta;
+        this.velocity.x -= this.direction.x * speed * accel * delta;
       }
       const moving = Math.abs(this.velocity.x) > 0.5 || Math.abs(this.velocity.z) > 0.5;
-      if (moving) {
+      if (moving && !this.antigravityActive) {
         this.footstepTimer += delta;
         const stepInterval = this.moveState.sprint ? 0.3 : 0.45;
         if (this.footstepTimer > stepInterval) {
@@ -32027,6 +33561,9 @@ void main() {
           const bob = Math.sin(this.clock.getElapsedTime() * 10) * 0.015;
           this.flashlightMesh.position.y = -0.26 + bob;
         }
+      } else if (this.antigravityActive && this.flashlightMesh) {
+        this.flashlightMesh.position.y = -0.26 + Math.sin(this.floatBobTimer * 2.8) * 0.025;
+        this.flashlightMesh.rotation.z = Math.sin(this.floatBobTimer * 1.4) * 0.04;
       }
       const oldX = this.camera.position.x;
       const oldZ = this.camera.position.z;
@@ -32038,7 +33575,20 @@ void main() {
       if (this.checkCollisions(this.camera.position.x, this.camera.position.z)) {
         this.camera.position.z = oldZ;
       }
-      this.camera.position.y = 1.7;
+      if (this.antigravityActive) {
+        if (this.moveState.ascend) {
+          this.targetAltitude = Math.min(5.4, this.targetAltitude + 3.8 * delta);
+        }
+        if (this.moveState.descend) {
+          this.targetAltitude = Math.max(1.7, this.targetAltitude - 3.8 * delta);
+        }
+        this.floatBobTimer += delta;
+        const zeroGBob = Math.sin(this.floatBobTimer * 2.2) * 0.09;
+        this.camera.position.y = MathUtils.lerp(this.camera.position.y, this.targetAltitude + zeroGBob, delta * 4.2);
+      } else {
+        this.targetAltitude = 1.7;
+        this.camera.position.y = MathUtils.lerp(this.camera.position.y, 1.7, delta * 7.5);
+      }
       let newLevel = 1;
       if (this.camera.position.z > -8) {
         newLevel = 1;
@@ -32060,7 +33610,16 @@ void main() {
       for (let c of this.colliders) {
         if (c.isDoor && c.doorRef && c.doorRef.isOpen) continue;
         if (c.isPortal && this.architect.exitPortal && this.architect.exitPortal.isOpen) continue;
+        if (c.isChasm) {
+          if (this.antigravityActive && this.camera.position.y >= 2.1) {
+            continue;
+          }
+        }
         if (x + R > c.minX && x - R < c.maxX && z + R > c.minZ && z - R < c.maxZ) {
+          if (c.isChasm) {
+            this.showBannerPopup("SHADOW ABYSS BLOCKED!", "The void consumes mortal steps! Press [G] to float across in Antigravity!");
+            sound.playStoneLocked();
+          }
           return true;
         }
       }

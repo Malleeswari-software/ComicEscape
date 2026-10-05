@@ -31,6 +31,8 @@ export class UIController {
     this.batteryFill = document.getElementById('battery-fill');
 
     // Action buttons
+    this.btnAntigrav = document.getElementById('btn-toggle-antigrav');
+    this.antigravBtnText = document.getElementById('antigrav-btn-text');
     this.btnHints = document.getElementById('btn-toggle-hints');
     this.btnJournal = document.getElementById('btn-toggle-journal');
     this.btnMusic = document.getElementById('btn-toggle-music');
@@ -39,6 +41,7 @@ export class UIController {
     // Reticle & Prompts
     this.promptHint = document.getElementById('prompt-hint');
     this.popupBanner = document.getElementById('comic-popup-banner');
+    this.zeroGVignette = document.getElementById('zero-g-vignette');
 
     // Modals
     this.setupModal = document.getElementById('setup-modal');
@@ -84,6 +87,12 @@ export class UIController {
     });
 
     // 2. HUD Buttons
+    if (this.btnAntigrav) {
+      this.btnAntigrav.addEventListener('click', () => {
+        sound.ensureContext();
+        this.game.toggleAntigravity();
+      });
+    }
     if (this.btnHints) this.btnHints.addEventListener('click', () => this.toggleHintModal());
     if (this.btnJournal) this.btnJournal.addEventListener('click', () => this.openJournal());
     if (this.btnMusic) {
@@ -161,7 +170,9 @@ export class UIController {
       { id: 'test-sfx-obsidian', fn: () => sound.playKeyPickup('obsidian') },
       { id: 'test-sfx-bowl', fn: () => sound.playSingingBowl(528, 4.0) },
       { id: 'test-sfx-whisper', fn: () => sound.playMysticWhisper() },
-      { id: 'test-sfx-chime', fn: () => sound.playMysticChime() }
+      { id: 'test-sfx-chime', fn: () => sound.playMysticChime() },
+      { id: 'test-sfx-antigrav', fn: () => sound.playAntigravityActivate() },
+      { id: 'test-sfx-graviton', fn: () => sound.playGravitonPickup() }
     ];
     sfxButtons.forEach(({ id, fn }) => {
       const btn = document.getElementById(id);
@@ -524,6 +535,15 @@ export class UIController {
       bindTouch(btnLeft, 'left');
       bindTouch(btnRight, 'right');
 
+      const mobAntigrav = document.getElementById('mob-btn-antigrav');
+      if (mobAntigrav) {
+        mobAntigrav.addEventListener('click', () => this.game.toggleAntigravity());
+        mobAntigrav.addEventListener('touchstart', e => {
+          e.preventDefault();
+          this.game.toggleAntigravity();
+        });
+      }
+
       const mobInteract = document.getElementById('mob-btn-interact');
       if (mobInteract) mobInteract.addEventListener('click', () => this.game.handleInteraction());
       const mobFlash = document.getElementById('mob-btn-flash');
@@ -536,6 +556,19 @@ export class UIController {
           this.game.setLightMode(next);
         });
       }
+    }
+  }
+
+  /* ---------------- ANTIGRAVITY HUD UPDATER ---------------- */
+  updateAntigravityHUD(active) {
+    if (this.btnAntigrav) {
+      this.btnAntigrav.classList.toggle('active', active);
+    }
+    if (this.antigravBtnText) {
+      this.antigravBtnText.innerText = active ? "🌌 ANTIGRAVITY: ACTIVE" : "🌌 ANTIGRAVITY [G]: READY";
+    }
+    if (this.zeroGVignette) {
+      this.zeroGVignette.classList.toggle('active', active);
     }
   }
 

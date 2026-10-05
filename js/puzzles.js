@@ -164,19 +164,81 @@ export class PuzzleManager {
     this.game.showBannerPopup("ANCIENT KEY ACQUIRED!", "Proceed to the Master Exit Portal on the North Wall to investigate!");
   }
 
+  /* ---------------- ANTIGRAVITY RELIC PUZZLE SOLVERS ---------------- */
+  solveCelestialGrimoire() {
+    this.state.state.gravitonSecrets.library = true;
+    sound.playGravitonPickup();
+    sound.playSingingBowl(528, 3.5);
+
+    // Auto-align the library books to Falcon, Serpent, Wolf
+    this.state.state.puzzles.libraryBooks = ['falcon', 'serpent', 'wolf'];
+    this.state.save();
+    [0, 1, 2].forEach(idx => {
+      this.game.updateLecternVisuals(idx, this.state.state.puzzles.libraryBooks[idx]);
+    });
+    this.solveLibraryPuzzle();
+
+    this.game.showBannerPopup(
+      "🌟 CELESTIAL GRIMOIRE DECIPHERED!",
+      "Antigravity Flight achieved! The sacred sequence [Falcon ➔ Serpent ➔ Wolf] is inscribed!"
+    );
+  }
+
+  solveAstralGravitonPrism() {
+    this.state.state.gravitonSecrets.observatory = true;
+    sound.playGravitonPickup();
+
+    // Auto-align the optical prism mirrors
+    this.state.state.puzzles.mirrorAlphaAngle = 45;
+    this.state.state.puzzles.mirrorBetaAngle = 135;
+    this.state.save();
+
+    this.game.setMirrorAngle('alpha', 45);
+    this.game.setMirrorAngle('beta', 135);
+
+    if (this.game.architect.astralSensor) {
+      this.game.architect.astralSensor.hit();
+      this.game.architect.astralSensor.hit();
+      this.game.architect.astralSensor.hit();
+    }
+    this.solveObservatoryPuzzle();
+
+    this.game.showBannerPopup(
+      "✨ ASTRAL GRAVITON PRISM HARMONIZED!",
+      "Zero-G alignment successful! Starlight vectors refracted directly into the Celestial Sensor!"
+    );
+  }
+
+  solveEyeOfHorusTablet() {
+    this.state.state.gravitonSecrets.temple = true;
+    sound.playGravitonPickup();
+
+    // Auto-balance both flame braziers to 50%
+    this.state.state.puzzles.brazierSol = 50;
+    this.state.state.puzzles.brazierLuna = 50;
+    this.state.save();
+
+    this.game.setBrazierFlame('sol', 50);
+    this.game.setBrazierFlame('luna', 50);
+    this.solveTemplePuzzle();
+
+    this.game.showBannerPopup(
+      "👁️ EYE OF HORUS CHANNELLED!",
+      "Sacred Antigravity Seal engaged! Solar and Lunar fires locked in harmonic 50/50 equilibrium!"
+    );
+  }
+
   /* ---------------- MASTER EXIT PORTAL: DRAMATIC PLOT TWIST ---------------- */
-  // The final portal opens WITHOUT ANY KEYS through a dramatic revelation!
   triggerFinalExit() {
     if (this.state.state.puzzles.exitPortalUnlocked) return;
     this.state.state.puzzles.exitPortalUnlocked = true;
     this.state.save();
 
-    // Play violent wall cracking, stone grinding, and twist reveal audio
     sound.playWallCracking();
     sound.playStoneGrinding(3.5);
     sound.playTwistReveal();
 
-    // Trigger the dramatic twist cinematic cutscene in UI
     this.game.ui.showTwistCutscene();
   }
 }
+

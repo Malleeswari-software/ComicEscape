@@ -164,6 +164,62 @@
       color: #4ade80;
     }
 
+    /* Antigravity Badge & Glow */
+    .antigrav-badge {
+      background: linear-gradient(135deg, rgba(30, 27, 75, 0.95), rgba(76, 29, 149, 0.88)) !important;
+      border: 2px solid #a855f7 !important;
+      color: #e9d5ff !important;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.45);
+      animation: antigravPulse 3s infinite ease-in-out;
+    }
+
+    @keyframes antigravPulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.35); }
+      50% { box-shadow: 0 0 24px rgba(168, 85, 247, 0.75); }
+    }
+
+    .antigrav-badge:hover {
+      background: linear-gradient(135deg, #7c3aed, #0284c7) !important;
+      border-color: #38bdf8 !important;
+      color: #fff !important;
+      transform: translateY(-2px);
+    }
+
+    .antigrav-badge.active {
+      background: linear-gradient(135deg, #0284c7, #9333ea) !important;
+      border-color: #38bdf8 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.9), 0 0 20px rgba(147, 51, 234, 0.7) !important;
+      animation: antigravActivePulse 1.2s infinite alternate;
+    }
+
+    @keyframes antigravActivePulse {
+      from { transform: scale(1.0); }
+      to { transform: scale(1.05); }
+    }
+
+    /* Zero-G Screen Vignette Overlay */
+    #zero-g-vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 8;
+      box-shadow: inset 0 0 90px rgba(147, 51, 234, 0.5), inset 0 0 180px rgba(2, 132, 199, 0.3);
+      border: 3px solid rgba(168, 85, 247, 0.4);
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+
+    #zero-g-vignette.active {
+      opacity: 1;
+      animation: cosmicAuraPulse 2.5s infinite ease-in-out;
+    }
+
+    @keyframes cosmicAuraPulse {
+      0%, 100% { box-shadow: inset 0 0 90px rgba(147, 51, 234, 0.5), inset 0 0 180px rgba(56, 189, 248, 0.35); }
+      50% { box-shadow: inset 0 0 140px rgba(168, 85, 247, 0.8), inset 0 0 250px rgba(56, 189, 248, 0.6); }
+    }
+
     /* Battery Meter */
     .battery-widget {
       display: flex;
@@ -979,6 +1035,9 @@
   <!-- 3D WebGL Canvas -->
   <canvas id="webgl-canvas"></canvas>
 
+  <!-- Zero-G Antigravity Screen Vignette Overlay -->
+  <div id="zero-g-vignette"></div>
+
   <!-- HUD -->
   <div id="hud" style="display: none;">
     <!-- Top Status Bar -->
@@ -1020,6 +1079,9 @@
 
       <!-- Quick Action Buttons -->
       <div style="display: flex; gap: 8px; pointer-events: auto;">
+        <button id="btn-toggle-antigrav" class="hud-badge hud-btn-action antigrav-badge" title="Press G to activate Antigravity flight">
+          <span id="antigrav-btn-text">🌌 ANTIGRAVITY [G]: READY</span>
+        </button>
         <button id="btn-toggle-journal" class="hud-badge hud-btn-action">
           <span>📖 JOURNAL [J]</span>
         </button>
@@ -1096,6 +1158,7 @@
       <div></div>
     </div>
     <div class="mobile-actions">
+      <button class="mob-action-btn" id="mob-btn-antigrav" style="background:#7c3aed; border-color:#a855f7;" title="Toggle Antigravity">[G]</button>
       <button class="mob-action-btn" id="mob-btn-interact">[E]</button>
       <button class="mob-action-btn" id="mob-btn-flash">🔦</button>
       <button class="mob-action-btn" id="mob-btn-mode">1/2/3</button>
@@ -1105,7 +1168,7 @@
   <!-- Click to Resume Control Overlay -->
   <div id="click-to-play">
     <h2>CLICK TO RESUME OPERATIVE CONTROL</h2>
-    <p>Move: <strong>[W, A, S, D]</strong> • Aim: <strong>Mouse</strong> • Interact: <strong>[E]</strong> • Light Modes: <strong>[1, 2, 3]</strong> • Journal: <strong>[J]</strong> • Hints: <strong>[H]</strong></p>
+    <p>Move: <strong>[W, A, S, D]</strong> • 🌌 Antigravity Flight: <strong>[G]</strong> • Float Up/Down: <strong>[Space / C]</strong> • Aim: <strong>Mouse</strong> • Interact: <strong>[E]</strong> • Light: <strong>[1, 2, 3, F]</strong></p>
   </div>
 
   <!-- Pre-Game Character Creation & Mode Setup Modal -->
@@ -1116,6 +1179,14 @@
       <div class="subtitle">Shadows of the Forgotten • Cinematic Escape Room</div>
       
       <p>Three sealed chambers separate you from freedom: The Forgotten Library, The Observatory of Lost Stars, and The Temple of Living Shadows. Decode graphic-novel clues, bend multi-spectral light, and acquire the 3 keys before the 15-minute lockdown.</p>
+
+      <div style="background: rgba(124, 58, 237, 0.18); border: 2px solid #a855f7; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #e9d5ff; text-align: left; display: flex; align-items: center; gap: 10px; box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);">
+        <span style="font-size: 24px;">🌌</span>
+        <div>
+          <strong style="color: #facc15; letter-spacing: 0.5px;">NEW FEATURE: ANTIGRAVITY [G]</strong><br>
+          Press <strong>[G]</strong> to engage zero-gravity levitation! Ascend with <strong>[SPACE/Q]</strong> to decipher elevated celestial grimoires, align aerial prisms, and glide over dark ground chasms!
+        </div>
+      </div>
 
       <!-- Player Name Input (Required & Validated) -->
       <div class="input-group">
@@ -1224,6 +1295,8 @@
           <button type="button" class="btn-sfx-test" id="test-sfx-bowl">🔔 Tibetan Singing Bowl</button>
           <button type="button" class="btn-sfx-test" id="test-sfx-whisper">💨 Shadow Whisper</button>
           <button type="button" class="btn-sfx-test" id="test-sfx-chime">✨ Solfeggio Chime</button>
+          <button type="button" class="btn-sfx-test" id="test-sfx-antigrav" style="border-color:#a855f7; color:#e9d5ff;">🌌 Antigravity Warp</button>
+          <button type="button" class="btn-sfx-test" id="test-sfx-graviton" style="border-color:#38bdf8; color:#38bdf8;">🌟 Graviton Chime</button>
         </div>
       </div>
 

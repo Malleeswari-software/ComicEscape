@@ -38,14 +38,26 @@ export class WorldArchitect {
     this.exitPortalSockets = [];
     this.exitDoorPanels = [];
     this.exitVistaMesh = null;
+
+    // Antigravity & Atmospheric Visual Systems
+    this.floatingBooks = [];
+    this.celestialGrimoire = null;
+    this.astralGravitonLens = null;
+    this.eyeOfHorusTablet = null;
+    this.ambientDustSystem = null;
+    this.antigravityStreamSystem = null;
+    this.shadowChasmMesh = null;
+    this.atmosphereTimer = 0;
   }
 
   buildAll() {
     this.buildGeneralFloorAndCeiling();
+    this.buildParticleAtmosphere();
     this.buildLevel1_Library();
     this.buildLevel2_Observatory();
     this.buildLevel3_Temple();
     this.buildFinalExitPortal();
+    this.buildAntigravityRelics();
   }
 
   /* ---------------- GENERAL FLOOR & CEILING ---------------- */
@@ -123,6 +135,9 @@ export class WorldArchitect {
 
     // Central Reading Table with 3 Lecterns
     this.createReadingTable(0, 0, 1);
+
+    // Floating Books that levitate in zero gravity
+    this.createFloatingBooks(0, 2.4, 1);
 
     // Ornate Archive Cabinet on North Wall (Housing Key 1)
     this.createArchiveCabinet(6.5, 0, -7.5);
@@ -893,4 +908,434 @@ export class WorldArchitect {
     keyGroup.userData = { keyType: type };
     return keyGroup;
   }
+
+  /* ---------------- PARTICLE ATMOSPHERE & ANTIGRAVITY STREAMS ---------------- */
+  createParticleTexture(colorHex = '#ffffff') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, colorHex);
+    grad.addColorStop(0.35, colorHex);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  buildParticleAtmosphere() {
+    const particleCount = 550;
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+
+    for (let i = 0; i < particleCount; i++) {
+      const x = (Math.random() - 0.5) * 18;
+      const y = 0.5 + Math.random() * 5.5;
+      const z = 10 - Math.random() * 66; // spans library, observatory, temple
+
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
+      // Color coding based on chamber: Gold for Library, Cyan/Purple for Observatory, Amber/Ruby for Temple
+      if (z > -8) {
+        colors[i * 3] = 0.98; colors[i * 3 + 1] = 0.82; colors[i * 3 + 2] = 0.35; // Golden dust
+      } else if (z > -30) {
+        colors[i * 3] = 0.22; colors[i * 3 + 1] = 0.74; colors[i * 3 + 2] = 0.98; // Astral cyan
+      } else {
+        colors[i * 3] = 0.85; colors[i * 3 + 1] = 0.35; colors[i * 3 + 2] = 0.95; // Temple mystic violet
+      }
+    }
+
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const pMat = new THREE.PointsMaterial({
+      size: 0.18,
+      vertexColors: true,
+      map: this.createParticleTexture('#ffffff'),
+      transparent: true,
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    this.ambientDustSystem = new THREE.Points(geo, pMat);
+    this.scene.add(this.ambientDustSystem);
+
+    // Antigravity Vertical Stream System
+    const gravCount = 400;
+    const gGeo = new THREE.BufferGeometry();
+    const gPositions = new Float32Array(gravCount * 3);
+    for (let i = 0; i < gravCount; i++) {
+      gPositions[i * 3] = (Math.random() - 0.5) * 16;
+      gPositions[i * 3 + 1] = Math.random() * 6.0;
+      gPositions[i * 3 + 2] = 8 - Math.random() * 62;
+    }
+    gGeo.setAttribute('position', new THREE.BufferAttribute(gPositions, 3));
+
+    const gMat = new THREE.PointsMaterial({
+      size: 0.24,
+      color: 0x38bdf8,
+      map: this.createParticleTexture('#38bdf8'),
+      transparent: true,
+      opacity: 0.4,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    this.antigravityStreamSystem = new THREE.Points(gGeo, gMat);
+    this.scene.add(this.antigravityStreamSystem);
+  }
+
+  /* ---------------- ANTIGRAVITY HIGH-ALTITUDE RELICS ---------------- */
+  buildAntigravityRelics() {
+    // 1. Chamber 1: High Celestial Grimoire floating near ceiling (Y=4.3)
+    this.createCelestialGrimoire(0, 4.3, 2);
+
+    // 2. Chamber 2: High Astral Graviton Prism in center of dome (Y=4.8)
+    this.createAstralGravitonPrism(0, 4.8, -20);
+
+    // 3. Chamber 3: High Sacred Eye of Horus Tablet above pharaohs (Y=4.6)
+    this.createEyeOfHorusTablet(0, 4.6, -38);
+
+    // 4. Chamber 3: Floor Shadow Chasm (requires floating in Antigravity to cross)
+    this.createShadowChasm(-34);
+  }
+
+  createFloatingBooks(x, y, z) {
+    const bookColors = [0x9333ea, 0x0284c7, 0xf59e0b, 0x10b981];
+    [-2.2, -0.8, 0.8, 2.2].forEach((offsetX, idx) => {
+      const group = new THREE.Group();
+      group.position.set(x + offsetX, y + (idx % 2 === 0 ? 0.3 : -0.2), z + (idx % 2 === 0 ? 0.8 : -0.8));
+
+      // Open book geometry
+      const pageMat = new THREE.MeshStandardMaterial({
+        color: 0xfef08a,
+        emissive: bookColors[idx],
+        emissiveIntensity: 0.4,
+        roughness: 0.5
+      });
+      const leftPage = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.7), pageMat);
+      leftPage.position.set(-0.24, 0, 0);
+      leftPage.rotation.z = Math.PI / 16;
+
+      const rightPage = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.7), pageMat);
+      rightPage.position.set(0.24, 0, 0);
+      rightPage.rotation.z = -Math.PI / 16;
+
+      group.add(leftPage);
+      group.add(rightPage);
+
+      this.scene.add(group);
+      this.floatingBooks.push({
+        group,
+        baseY: group.position.y,
+        speed: 1.2 + idx * 0.3,
+        rotSpeed: 0.4 + idx * 0.2
+      });
+    });
+  }
+
+  createCelestialGrimoire(x, y, z) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+
+    // Glowing ancient runic circle underneath
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xfacc15,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.85
+    });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.04, 8, 32), ringMat);
+    ring.rotation.x = Math.PI / 2;
+    group.add(ring);
+
+    // Inner rotating glyph disc
+    const discGeo = new THREE.RingGeometry(0.3, 1.1, 16);
+    const discMat = new THREE.MeshBasicMaterial({
+      color: 0xa855f7,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide
+    });
+    const disc = new THREE.Mesh(discGeo, discMat);
+    disc.rotation.x = Math.PI / 2;
+    group.add(disc);
+
+    // Grand Floating Tome
+    const tomeMat = new THREE.MeshStandardMaterial({
+      color: 0x4c1d95,
+      emissive: 0xfacc15,
+      emissiveIntensity: 0.5,
+      roughness: 0.4,
+      metalness: 0.4
+    });
+    const tome = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.25, 1.5), tomeMat);
+    group.add(tome);
+
+    // Golden embossed corner guards
+    const cornerMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.1 });
+    [-0.55, 0.55].forEach(cx => {
+      [-0.7, 0.7].forEach(cz => {
+        const c = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.28, 0.18), cornerMat);
+        c.position.set(cx, 0, cz);
+        group.add(c);
+      });
+    });
+
+    // Glowing PointLight
+    const light = new THREE.PointLight(0xfacc15, 2.8, 14, 1.4);
+    light.position.set(0, 0.4, 0);
+    group.add(light);
+
+    // Interaction trigger box
+    const trigger = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 2.4), new THREE.MeshBasicMaterial({ visible: false }));
+    trigger.userData = {
+      type: 'celestial_grimoire',
+      prompt: '[E] Decipher Celestial Antigravity Grimoire'
+    };
+    this.game.interactables.push(trigger);
+    group.add(trigger);
+
+    this.scene.add(group);
+    this.celestialGrimoire = { group, ring, disc, tome, light, baseY: y };
+  }
+
+  createAstralGravitonPrism(x, y, z) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+
+    // Central Floating Crystalline Octahedron
+    const crystalGeo = new THREE.OctahedronGeometry(1.0, 0);
+    const crystalMat = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.75,
+      metalness: 0.95,
+      roughness: 0.08,
+      transparent: true,
+      opacity: 0.92
+    });
+    const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+    group.add(crystal);
+
+    // Orbiting Starlight Spheres
+    const orbiters = [];
+    const orbGeo = new THREE.SphereGeometry(0.14, 16, 16);
+    const orbMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+    for (let i = 0; i < 3; i++) {
+      const orb = new THREE.Mesh(orbGeo, orbMat);
+      group.add(orb);
+      orbiters.push(orb);
+    }
+
+    // Astral cyan point light
+    const light = new THREE.PointLight(0x38bdf8, 3.2, 16, 1.2);
+    group.add(light);
+
+    // Interaction trigger box
+    const trigger = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 2.6), new THREE.MeshBasicMaterial({ visible: false }));
+    trigger.userData = {
+      type: 'astral_graviton_prism',
+      prompt: '[E] Harmonize Astral Graviton Prism'
+    };
+    this.game.interactables.push(trigger);
+    group.add(trigger);
+
+    this.scene.add(group);
+    this.astralGravitonLens = { group, crystal, orbiters, light, baseY: y };
+  }
+
+  createEyeOfHorusTablet(x, y, z) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+
+    // Ornate Golden-Lapis Tablet Slab
+    const slabMat = new THREE.MeshStandardMaterial({
+      color: 0x1e3a8a,
+      emissive: 0xf59e0b,
+      emissiveIntensity: 0.45,
+      metalness: 0.8,
+      roughness: 0.25
+    });
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 0.2), slabMat);
+    group.add(slab);
+
+    // Golden Crest Frame
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.95, roughness: 0.15 });
+    const topFrame = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.6, 4), frameMat);
+    topFrame.position.set(0, 0.9, 0);
+    group.add(topFrame);
+
+    // Eye of Horus Canvas Texture
+    const eyeCanvas = document.createElement('canvas');
+    eyeCanvas.width = 256;
+    eyeCanvas.height = 256;
+    const ectx = eyeCanvas.getContext('2d');
+    ectx.fillStyle = '#0f172a';
+    ectx.fillRect(0, 0, 256, 256);
+    ectx.fillStyle = '#facc15';
+    ectx.font = '900 80px sans-serif';
+    ectx.textAlign = 'center';
+    ectx.textBaseline = 'middle';
+    ectx.fillText('𓂀', 128, 128);
+
+    const eyeTex = new THREE.CanvasTexture(eyeCanvas);
+    const eyePlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.2, 1.0),
+      new THREE.MeshStandardMaterial({ map: eyeTex, emissive: 0xf59e0b, emissiveIntensity: 0.6 })
+    );
+    eyePlane.position.set(0, 0, 0.12);
+    group.add(eyePlane);
+
+    // Warm golden light
+    const light = new THREE.PointLight(0xf59e0b, 2.6, 14, 1.2);
+    group.add(light);
+
+    // Interaction trigger
+    const trigger = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 2.6), new THREE.MeshBasicMaterial({ visible: false }));
+    trigger.userData = {
+      type: 'eye_of_horus_tablet',
+      prompt: '[E] Channel Eye of Horus Graviton Seal'
+    };
+    this.game.interactables.push(trigger);
+    group.add(trigger);
+
+    this.scene.add(group);
+    this.eyeOfHorusTablet = { group, slab, eyePlane, light, baseY: y };
+  }
+
+  createShadowChasm(z) {
+    const group = new THREE.Group();
+    group.position.set(0, 0.04, z);
+
+    // Dark Void Trench across floor
+    const chasmCanvas = document.createElement('canvas');
+    chasmCanvas.width = 512;
+    chasmCanvas.height = 128;
+    const cctx = chasmCanvas.getContext('2d');
+    cctx.fillStyle = '#020617';
+    cctx.fillRect(0, 0, 512, 128);
+    // Swirling purple energetic ripples
+    cctx.strokeStyle = '#a855f7';
+    cctx.lineWidth = 4;
+    for (let i = 0; i < 6; i++) {
+      cctx.beginPath();
+      cctx.arc(256 + (i - 2.5) * 80, 64, 45, 0, Math.PI * 2);
+      cctx.stroke();
+    }
+
+    const cTex = new THREE.CanvasTexture(chasmCanvas);
+    const chasmMat = new THREE.MeshStandardMaterial({
+      map: cTex,
+      color: 0x05021a,
+      emissive: 0x7c3aed,
+      emissiveIntensity: 0.6,
+      roughness: 0.3
+    });
+
+    const chasmMesh = new THREE.Mesh(new THREE.PlaneGeometry(19, 3.2), chasmMat);
+    chasmMesh.rotation.x = -Math.PI / 2;
+    group.add(chasmMesh);
+
+    // Glowing border runes
+    const borderMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    const b1 = new THREE.Mesh(new THREE.BoxGeometry(19, 0.1, 0.1), borderMat);
+    b1.position.set(0, 0.05, -1.6);
+    const b2 = new THREE.Mesh(new THREE.BoxGeometry(19, 0.1, 0.1), borderMat);
+    b2.position.set(0, 0.05, 1.6);
+    group.add(b1);
+    group.add(b2);
+
+    this.scene.add(group);
+    this.shadowChasmMesh = chasmMesh;
+
+    // Collider with isChasm = true (blocks movement unless player is floating in Antigravity)
+    this.game.colliders.push({
+      minX: -9.5,
+      maxX: 9.5,
+      minZ: z - 1.4,
+      maxZ: z + 1.4,
+      isChasm: true
+    });
+  }
+
+  updateAtmosphere(delta, antigravityActive) {
+    this.atmosphereTimer += delta;
+
+    // 1. Update ambient dust
+    if (this.ambientDustSystem) {
+      const pos = this.ambientDustSystem.geometry.attributes.position.array;
+      for (let i = 1; i < pos.length; i += 3) {
+        if (antigravityActive) {
+          pos[i] += delta * 2.2;
+          if (pos[i] > 6.4) pos[i] = 0.4;
+        } else {
+          pos[i] += Math.sin(this.atmosphereTimer + i) * delta * 0.15;
+        }
+      }
+      this.ambientDustSystem.geometry.attributes.position.needsUpdate = true;
+    }
+
+    // 2. Update Antigravity vertical streams
+    if (this.antigravityStreamSystem) {
+      const gPos = this.antigravityStreamSystem.geometry.attributes.position.array;
+      const speed = antigravityActive ? 5.5 : 0.4;
+      this.antigravityStreamSystem.material.opacity = antigravityActive ? 0.85 : 0.25;
+      for (let i = 1; i < gPos.length; i += 3) {
+        gPos[i] += delta * speed;
+        if (gPos[i] > 6.4) gPos[i] = 0.2;
+      }
+      this.antigravityStreamSystem.geometry.attributes.position.needsUpdate = true;
+    }
+
+    // 3. Animate floating books
+    this.floatingBooks.forEach((fb, idx) => {
+      const bobAmp = antigravityActive ? 0.45 : 0.12;
+      fb.group.position.y = fb.baseY + Math.sin(this.atmosphereTimer * fb.speed) * bobAmp;
+      fb.group.rotation.y += delta * fb.rotSpeed * (antigravityActive ? 2.5 : 0.8);
+      if (antigravityActive) {
+        fb.group.rotation.z = Math.sin(this.atmosphereTimer * 1.5 + idx) * 0.2;
+      }
+    });
+
+    // 4. Animate Celestial Grimoire
+    if (this.celestialGrimoire) {
+      const cg = this.celestialGrimoire;
+      cg.group.position.y = cg.baseY + Math.sin(this.atmosphereTimer * 1.8) * (antigravityActive ? 0.35 : 0.15);
+      cg.ring.rotation.z += delta * 1.2;
+      cg.disc.rotation.z -= delta * 0.9;
+      cg.tome.rotation.y += delta * 0.5;
+    }
+
+    // 5. Animate Astral Graviton Prism
+    if (this.astralGravitonLens) {
+      const ag = this.astralGravitonLens;
+      ag.group.position.y = ag.baseY + Math.sin(this.atmosphereTimer * 2.2) * (antigravityActive ? 0.3 : 0.1);
+      ag.crystal.rotation.x += delta * 1.0;
+      ag.crystal.rotation.y += delta * 1.4;
+
+      ag.orbiters.forEach((orb, i) => {
+        const angle = this.atmosphereTimer * 2.5 + (i * Math.PI * 2) / 3;
+        orb.position.set(Math.cos(angle) * 1.8, Math.sin(angle * 1.2) * 0.5, Math.sin(angle) * 1.8);
+      });
+    }
+
+    // 6. Animate Eye of Horus Tablet
+    if (this.eyeOfHorusTablet) {
+      const et = this.eyeOfHorusTablet;
+      et.group.position.y = et.baseY + Math.sin(this.atmosphereTimer * 1.5) * (antigravityActive ? 0.28 : 0.1);
+      et.group.rotation.y = Math.sin(this.atmosphereTimer * 0.8) * 0.25;
+    }
+
+    // 7. Pulse Shadow Chasm
+    if (this.shadowChasmMesh) {
+      this.shadowChasmMesh.material.emissiveIntensity = 0.5 + Math.sin(this.atmosphereTimer * 3.0) * 0.35;
+    }
+  }
 }
+
