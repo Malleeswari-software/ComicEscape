@@ -98,7 +98,41 @@ npm run build
 
 ---
 
+## 🎮 Play Online (Itch.io)
+
+Play the official browser build directly on itch.io:
+👉 **[Play Comic Escape on Itch.io](https://malleeswari.itch.io/comic-escape)**  
+*(Also accessible via your itch.io dashboard project page)*
+
+---
+
+## 👥 Team & Development Roles
+
+- **Thadikonda Malleeswari (Chinnu)** — *Solo Developer, Game Designer, Creative Director, Gameplay Programmer, and Puzzle Architect.*
+
+---
+
+## 🤖 AI Disclosure (Game Jam Rule B)
+
+In compliance with Game Jam Rule B (AI Disclosure and Originality):
+- **Code & Logic Assistance**: Antigravity IDE powered by Google Gemini LLM was used for pair-programming, Three.js WebGL integration, procedural Web Audio synthesis algorithms, and bug fixing.
+- **Visual Illustrations & Covers**: Google Imagen / DeepMind AI generation within Antigravity was used for comic chapter covers and cinematic cutscene storyboards.
+- **Original Creative Contribution**: All core game concepts, chamber narrative architecture (*The Decoy Key Conspiracy*), multi-spectral flashlight mechanics (White/UV/Laser), Zero-G flight design, 3D chamber layouts, and puzzle rules (Falcon/Serpent/Wolf, optical laser reflection, Sol/Luna shadow balance) were designed, directed, and integrated by the developer.
+
+---
+
+## 📜 Credits & Asset Licensing (Game Jam Rule A)
+
+- **No Paid Assets**: Zero third-party paid assets were used in this project.
+- **Open-Source Libraries**: Three.js (MIT), PointerLockControls (MIT), esbuild (MIT).
+- **Open-Source Fonts**: *Cinzel*, *Outfit*, *Space Mono*, and *Bangers* (SIL Open Font License 1.1 via Google Fonts).
+- **Procedural Content**: 100% of 3D geometry is procedurally generated with Three.js primitives; 100% of audio is procedurally synthesized via the Web Audio API.
+- For complete licensing details and source links, please review [CREDITS.md](CREDITS.md).
+
+---
+
 ## 📜 License
 
 Created for the **The Escape Protocol** interactive project.
 All rights reserved © 2026.
+
