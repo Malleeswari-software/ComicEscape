@@ -6,7 +6,9 @@
 ---
 
 ## 1. Development Team
-- **Thadikonda Malleeswari (Chinnu)**: Solo Developer, Game Designer, Creative Director, Gameplay Programmer, and Puzzle Architect.
+- **Thadikonda N V V D Malleeswari**: Lead Developer, Gameplay Programmer & Technical Integration.
+- **Gattu Suchith Reddy**: Game Designer, Puzzle Architect & Creative Direction.
+- **Thakur Adithya Singh**: Level Design, Story & Asset Coordination.
 
 ---
 
