@@ -417,10 +417,12 @@ export class EscapeGame3D {
       emissive: 0x0284c7,
       emissiveIntensity: 0.3,
       metalness: 0.98,
-      roughness: 0.05
+      roughness: 0.05,
+      side: THREE.DoubleSide
     });
     const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.0), glassMat);
     glass.position.set(0, 0, 0.07);
+    glass.userData = { isMirror: true };
     headGroup.add(glass);
 
     group.add(headGroup);
@@ -656,26 +658,54 @@ export class EscapeGame3D {
 
   /* ---------------- LASER REFLECTION ENGINE ---------------- */
   updateLaserReflection() {
-    this.laserBeams.forEach(b => this.scene.remove(b));
+    // Properly clean up previous beam lines and free GPU resources
+    this.laserBeams.forEach(b => {
+      this.scene.remove(b);
+      if (b.geometry) b.geometry.dispose();
+      if (b.material) b.material.dispose();
+    });
     this.laserBeams = [];
 
     if (!this.flashlightOn || this.lightMode !== 'laser') return;
 
-    const origin = new THREE.Vector3();
-    this.spotLight.getWorldPosition(origin);
-    const dir = new THREE.Vector3();
-    this.camera.getWorldDirection(dir);
+    // Crosshair target in world space (where the player is directly looking)
+    const cameraPos = new THREE.Vector3();
+    this.camera.getWorldPosition(cameraPos);
+    const cameraDir = new THREE.Vector3();
+    this.camera.getWorldDirection(cameraDir);
 
-    let curPos = origin.clone();
-    let curDir = dir.clone();
+    // Initial raycast from camera center to find exact aiming point
+    const centerRaycaster = new THREE.Raycaster(cameraPos, cameraDir, 0.1, 50);
+    const centerHits = centerRaycaster.intersectObjects(this.scene.children, true);
+    let aimPoint = null;
+    for (let hit of centerHits) {
+      if (hit.object === this.volumetricCone || hit.object === this.flashlightMesh || (this.flashlightMesh && this.flashlightMesh.getObjectById(hit.object.id))) continue;
+      aimPoint = hit.point;
+      break;
+    }
+    if (!aimPoint) {
+      aimPoint = cameraPos.clone().add(cameraDir.clone().multiplyScalar(40));
+    }
 
-    for (let bounce = 0; bounce < 3; bounce++) {
-      const raycaster = new THREE.Raycaster(curPos, curDir, 0.1, 40);
+    // Flashlight emitter origin
+    const emitterPos = new THREE.Vector3();
+    if (this.flashlightMesh) {
+      this.flashlightMesh.getWorldPosition(emitterPos);
+    } else {
+      emitterPos.copy(cameraPos);
+    }
+
+    let curPos = emitterPos.clone();
+    let curDir = aimPoint.clone().sub(emitterPos).normalize();
+
+    // Trace controlled optical path (max 4 bounces)
+    for (let bounce = 0; bounce < 4; bounce++) {
+      const raycaster = new THREE.Raycaster(curPos, curDir, 0.05, 50);
       const intersects = raycaster.intersectObjects(this.scene.children, true);
 
       let closest = null;
       for (let hit of intersects) {
-        if (hit.object === this.volumetricCone || hit.object === this.flashlightMesh) continue;
+        if (hit.object === this.volumetricCone || hit.object === this.flashlightMesh || (this.flashlightMesh && this.flashlightMesh.getObjectById(hit.object.id))) continue;
         closest = hit;
         break;
       }
@@ -688,28 +718,44 @@ export class EscapeGame3D {
 
       this.drawLaserSegment(curPos, closest.point);
 
-      // Check hit mirror
-      let hitMirror = false;
-      let obj = closest.object;
-      while (obj) {
-        if (obj.geometry && obj.geometry.type === 'PlaneGeometry' && obj.material && obj.material.metalness > 0.9) {
-          hitMirror = true;
+      // Check if the intersected object is specifically a designated puzzle mirror
+      let isReflectiveMirror = false;
+      let mirrorMesh = null;
+      let checkObj = closest.object;
+      while (checkObj) {
+        if (checkObj.userData && checkObj.userData.isMirror) {
+          isReflectiveMirror = true;
+          mirrorMesh = checkObj;
           break;
         }
-        obj = obj.parent;
+        checkObj = checkObj.parent;
       }
 
-      // Check hit Astral Sensor
-      if (this.architect.astralSensor && closest.point.distanceTo(this.architect.astralSensor.position) < 1.0) {
-        this.architect.astralSensor.hit();
+      // Check hit Astral Sensor (receptor)
+      if (this.architect.astralSensor) {
+        const sensorDist = closest.point.distanceTo(this.architect.astralSensor.position);
+        if (sensorDist < 1.6) {
+          this.architect.astralSensor.hit();
+        }
       }
 
-      if (hitMirror && closest.normal) {
-        const normal = closest.normal.clone().transformDirection(closest.object.matrixWorld).normalize();
+      // Only designated mirrors reflect the laser beam.
+      // All other surfaces (floor, ceiling, walls, pedestals, altar, etc.) absorb and stop the beam.
+      if (isReflectiveMirror && mirrorMesh && closest.point) {
+        // Calculate the mirror surface normal from the mirror mesh rotation in world space
+        let normal = new THREE.Vector3(0, 0, 1);
+        normal.applyQuaternion(mirrorMesh.getWorldQuaternion(new THREE.Quaternion())).normalize();
+
+        // Ensure normal faces against the incoming ray
+        if (curDir.dot(normal) > 0) {
+          normal.negate();
+        }
+
         const dot = curDir.dot(normal);
         curDir = curDir.clone().sub(normal.clone().multiplyScalar(2 * dot)).normalize();
-        curPos = closest.point.clone().add(curDir.clone().multiplyScalar(0.05));
+        curPos = closest.point.clone().add(curDir.clone().multiplyScalar(0.06));
       } else {
+        // Non-reflective surface hit: stop the beam cleanly
         break;
       }
     }
@@ -717,10 +763,17 @@ export class EscapeGame3D {
 
   drawLaserSegment(start, end) {
     const geo = new THREE.BufferGeometry().setFromPoints([start, end]);
-    const mat = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 3 });
-    const line = new THREE.Line(geo, mat);
-    this.scene.add(line);
-    this.laserBeams.push(line);
+    // Core high-intensity laser line
+    const coreMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+    const coreLine = new THREE.Line(geo, coreMat);
+    this.scene.add(coreLine);
+    this.laserBeams.push(coreLine);
+
+    // Subtle outer laser glow line
+    const glowMat = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 3, transparent: true, opacity: 0.85 });
+    const glowLine = new THREE.Line(geo, glowMat);
+    this.scene.add(glowLine);
+    this.laserBeams.push(glowLine);
   }
 
   /* ---------------- EVENT LISTENERS ---------------- */
@@ -968,14 +1021,29 @@ export class EscapeGame3D {
     const oldX = this.camera.position.x;
     const oldZ = this.camera.position.z;
 
+    // Apply movement steps
     this.controls.moveRight(-this.velocity.x * delta);
+    this.controls.moveForward(-this.velocity.z * delta);
+
+    const targetX = this.camera.position.x;
+    const targetZ = this.camera.position.z;
+
+    // Reset camera to start of this physics frame
+    this.camera.position.x = oldX;
+    this.camera.position.z = oldZ;
+
+    // Step 1: Try movement along world X axis
+    this.camera.position.x = targetX;
     if (this.checkCollisions(this.camera.position.x, oldZ)) {
       this.camera.position.x = oldX;
+      this.velocity.x = 0;
     }
 
-    this.controls.moveForward(-this.velocity.z * delta);
+    // Step 2: Try movement along world Z axis
+    this.camera.position.z = targetZ;
     if (this.checkCollisions(this.camera.position.x, this.camera.position.z)) {
       this.camera.position.z = oldZ;
+      this.velocity.z = 0;
     }
 
     // Altitude Physics & Vertical Levitation Control

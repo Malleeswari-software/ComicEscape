@@ -31211,14 +31211,16 @@ void main() {
         COMIC_DATA.library.coverImg
       );
       this.createBookshelfRow(-9.5, 0, 1, 18, H, Math.PI / 2);
+      this.createPartitionWall(-10, H / 2, 1, 18, H, Math.PI / 2);
       this.createBookshelfRow(9.5, 0, 1, 18, H, -Math.PI / 2);
+      this.createPartitionWall(10, H / 2, 1, 18, H, -Math.PI / 2);
       this.createCandleChandelier(0, 5.2, 2);
       this.createMoonlightWindow(-9.8, 3.8, 2);
       this.createReadingTable(0, 0, 1);
       this.createFloatingBooks(0, 2.4, 1);
       this.createArchiveCabinet(6.5, 0, -7.5);
-      this.createPartitionWall(-6.2, 3.25, -8, 8, 6.5, 0);
-      this.createPartitionWall(6.2, 3.25, -8, 8, 6.5, 0);
+      this.createPartitionWall(-6.1, 3.25, -8, 7.8, 6.5, 0);
+      this.createPartitionWall(6.1, 3.25, -8, 7.8, 6.5, 0);
       this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0, false);
       this.game.doors["door1"] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal", "libraryKey");
     }
@@ -31419,8 +31421,8 @@ void main() {
       this.game.createComicWall(
         -10,
         H / 2,
-        Z_CENTER,
-        20,
+        -19,
+        22,
         H,
         Math.PI / 2,
         "The Last Night of the Lost Constellation",
@@ -31428,17 +31430,17 @@ void main() {
         COMIC_DATA.observatory.uvClue,
         COMIC_DATA.observatory.coverImg
       );
-      this.createStarChartWall(10, H / 2, Z_CENTER, 20, H, -Math.PI / 2);
+      this.createStarChartWall(10, H / 2, -19, 22, H, -Math.PI / 2);
       this.createObservatoryGlassDome(0, 6.2, Z_CENTER);
       this.createGrandTelescope(0, 0, Z_CENTER + 2);
       this.mirrorAlpha = this.game.createRotatableMirror(-5.5, 0, Z_CENTER + 4, 0, "Mirror Alpha", "alpha");
       this.mirrorBeta = this.game.createRotatableMirror(5.5, 0, Z_CENTER - 4, Math.PI / 4, "Mirror Beta", "beta");
       this.createArmillaryVault(0, 0, Z_CENTER - 4);
       this.astralSensor = this.createAstralGlyphSensor(6, 2.2, Z_CENTER - 9.6);
-      this.createPartitionWall(-6.2, 3.25, Z_CENTER - 10, 8, 6.5, 0);
-      this.createPartitionWall(6.2, 3.25, Z_CENTER - 10, 8, 6.5, 0);
-      this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0, false);
-      this.game.doors["door2"] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway", "observatoryKey");
+      this.createPartitionWall(-6.1, 3.25, -30, 7.8, 6.5, 0);
+      this.createPartitionWall(6.1, 3.25, -30, 7.8, 6.5, 0);
+      this.createPartitionWall(0, 5.65, -30, 4.4, 1.7, 0, false);
+      this.game.doors["door2"] = this.game.createVaultDoor(0, 2.4, -30, 4.4, 4.8, true, "Temple Gateway", "observatoryKey");
     }
     createStarChartWall(x, y, z, width, height, rotY) {
       const sCanvas = document.createElement("canvas");
@@ -31551,21 +31553,36 @@ void main() {
       const group = new Group();
       group.position.set(x, y, z);
       const frameMat = new MeshStandardMaterial({ color: 988970, metalness: 0.9, roughness: 0.2 });
-      const frame = new Mesh(new BoxGeometry(1.4, 1.4, 0.2), frameMat);
+      const frame = new Mesh(new BoxGeometry(1.9, 1.9, 0.25), frameMat);
       group.add(frame);
+      const ringMat = new MeshStandardMaterial({
+        color: 16096779,
+        emissive: 16096779,
+        emissiveIntensity: 0.6,
+        metalness: 0.95
+      });
+      const runeRing = new Mesh(new TorusGeometry(0.75, 0.06, 16, 32), ringMat);
+      runeRing.position.z = 0.14;
+      group.add(runeRing);
       const eyeMat = new MeshStandardMaterial({
         color: 15680580,
         emissive: 15680580,
-        emissiveIntensity: 0.8
+        emissiveIntensity: 1,
+        roughness: 0.2,
+        metalness: 0.3
       });
-      const eye = new Mesh(new CylinderGeometry(0.4, 0.4, 0.15, 24), eyeMat);
+      const eye = new Mesh(new CylinderGeometry(0.55, 0.55, 0.2, 24), eyeMat);
       eye.rotation.x = Math.PI / 2;
-      eye.position.z = 0.12;
+      eye.position.z = 0.15;
       group.add(eye);
+      const targetGlow = new PointLight(15680580, 2, 8, 1.5);
+      targetGlow.position.set(0, 0, 0.4);
+      group.add(targetGlow);
       this.scene.add(group);
       return {
         group,
         eyeMat,
+        targetGlow,
         position: new Vector3(x, y, z),
         activated: false,
         charge: 0,
@@ -31573,10 +31590,16 @@ void main() {
           if (this.astralSensor.activated) return;
           this.astralSensor.charge += 0.08;
           this.game.sound.playLaserBounce();
+          this.astralSensor.eyeMat.emissiveIntensity = 1.8;
+          setTimeout(() => {
+            if (!this.astralSensor.activated) this.astralSensor.eyeMat.emissiveIntensity = 1;
+          }, 120);
           if (this.astralSensor.charge >= 1) {
             this.astralSensor.activated = true;
             this.astralSensor.eyeMat.color.setHex(3718648);
             this.astralSensor.eyeMat.emissive.setHex(3718648);
+            this.astralSensor.eyeMat.emissiveIntensity = 1.2;
+            this.astralSensor.targetGlow.color.setHex(3718648);
             this.game.puzzleManager.solveObservatoryPuzzle();
           }
         }
@@ -31587,10 +31610,10 @@ void main() {
       const H = 7;
       const Z_CENTER = -44;
       this.game.createComicWall(
-        -12,
+        -10,
         H / 2,
-        Z_CENTER,
-        24,
+        -39,
+        18,
         H,
         Math.PI / 2,
         "The Final Shadow of the Sun and Moon",
@@ -31598,7 +31621,7 @@ void main() {
         COMIC_DATA.temple.uvClue,
         COMIC_DATA.temple.coverImg
       );
-      this.createHieroglyphWall(12, H / 2, Z_CENTER, 24, H, -Math.PI / 2);
+      this.createHieroglyphWall(10, H / 2, -39, 18, H, -Math.PI / 2);
       this.createGuardianStatue(-6, 0, Z_CENTER + 6, Math.PI / 4);
       this.createGuardianStatue(6, 0, Z_CENTER + 6, -Math.PI / 4);
       this.createGuardianStatue(-6, 0, Z_CENTER + 10, Math.PI / 4);
@@ -31606,10 +31629,10 @@ void main() {
       this.brazierSol = this.createFlameBrazier(5.5, 0, Z_CENTER - 1, "sol", 16347926);
       this.brazierLuna = this.createFlameBrazier(-5.5, 0, Z_CENTER - 1, "luna", 11032055);
       this.createCeremonialAltar(0, 0, Z_CENTER - 1);
-      this.createPartitionWall(-7.1, 3.5, -48, 9.8, 7, 0);
-      this.createPartitionWall(7.1, 3.5, -48, 9.8, 7, 0);
-      this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0, false);
-      this.game.doors["door3"] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway", "templeKey");
+      this.createPartitionWall(-6.5, 3.5, -48, 7, 7, 0);
+      this.createPartitionWall(6.5, 3.5, -48, 7, 7, 0);
+      this.createPartitionWall(0, 5.9, -48, 6, 2.2, 0, false);
+      this.game.doors["door3"] = this.game.createVaultDoor(0, 2.4, -48, 6, 4.8, true, "Sanctuary Gateway", "templeKey");
     }
     createHieroglyphWall(x, y, z, width, height, rotY) {
       const hCanvas = document.createElement("canvas");
@@ -33450,10 +33473,12 @@ void main() {
         emissive: 165063,
         emissiveIntensity: 0.3,
         metalness: 0.98,
-        roughness: 0.05
+        roughness: 0.05,
+        side: DoubleSide
       });
       const glass = new Mesh(new PlaneGeometry(1.2, 1), glassMat);
       glass.position.set(0, 0, 0.07);
+      glass.userData = { isMirror: true };
       headGroup.add(glass);
       group.add(headGroup);
       this.scene.add(group);
@@ -33664,21 +33689,42 @@ void main() {
     }
     /* ---------------- LASER REFLECTION ENGINE ---------------- */
     updateLaserReflection() {
-      this.laserBeams.forEach((b) => this.scene.remove(b));
+      this.laserBeams.forEach((b) => {
+        this.scene.remove(b);
+        if (b.geometry) b.geometry.dispose();
+        if (b.material) b.material.dispose();
+      });
       this.laserBeams = [];
       if (!this.flashlightOn || this.lightMode !== "laser") return;
-      const origin = new Vector3();
-      this.spotLight.getWorldPosition(origin);
-      const dir = new Vector3();
-      this.camera.getWorldDirection(dir);
-      let curPos = origin.clone();
-      let curDir = dir.clone();
-      for (let bounce = 0; bounce < 3; bounce++) {
-        const raycaster = new Raycaster(curPos, curDir, 0.1, 40);
+      const cameraPos = new Vector3();
+      this.camera.getWorldPosition(cameraPos);
+      const cameraDir = new Vector3();
+      this.camera.getWorldDirection(cameraDir);
+      const centerRaycaster = new Raycaster(cameraPos, cameraDir, 0.1, 50);
+      const centerHits = centerRaycaster.intersectObjects(this.scene.children, true);
+      let aimPoint = null;
+      for (let hit of centerHits) {
+        if (hit.object === this.volumetricCone || hit.object === this.flashlightMesh || this.flashlightMesh && this.flashlightMesh.getObjectById(hit.object.id)) continue;
+        aimPoint = hit.point;
+        break;
+      }
+      if (!aimPoint) {
+        aimPoint = cameraPos.clone().add(cameraDir.clone().multiplyScalar(40));
+      }
+      const emitterPos = new Vector3();
+      if (this.flashlightMesh) {
+        this.flashlightMesh.getWorldPosition(emitterPos);
+      } else {
+        emitterPos.copy(cameraPos);
+      }
+      let curPos = emitterPos.clone();
+      let curDir = aimPoint.clone().sub(emitterPos).normalize();
+      for (let bounce = 0; bounce < 4; bounce++) {
+        const raycaster = new Raycaster(curPos, curDir, 0.05, 50);
         const intersects = raycaster.intersectObjects(this.scene.children, true);
         let closest = null;
         for (let hit of intersects) {
-          if (hit.object === this.volumetricCone || hit.object === this.flashlightMesh) continue;
+          if (hit.object === this.volumetricCone || hit.object === this.flashlightMesh || this.flashlightMesh && this.flashlightMesh.getObjectById(hit.object.id)) continue;
           closest = hit;
           break;
         }
@@ -33688,23 +33734,32 @@ void main() {
           break;
         }
         this.drawLaserSegment(curPos, closest.point);
-        let hitMirror = false;
-        let obj = closest.object;
-        while (obj) {
-          if (obj.geometry && obj.geometry.type === "PlaneGeometry" && obj.material && obj.material.metalness > 0.9) {
-            hitMirror = true;
+        let isReflectiveMirror = false;
+        let mirrorMesh = null;
+        let checkObj = closest.object;
+        while (checkObj) {
+          if (checkObj.userData && checkObj.userData.isMirror) {
+            isReflectiveMirror = true;
+            mirrorMesh = checkObj;
             break;
           }
-          obj = obj.parent;
+          checkObj = checkObj.parent;
         }
-        if (this.architect.astralSensor && closest.point.distanceTo(this.architect.astralSensor.position) < 1) {
-          this.architect.astralSensor.hit();
+        if (this.architect.astralSensor) {
+          const sensorDist = closest.point.distanceTo(this.architect.astralSensor.position);
+          if (sensorDist < 1.6) {
+            this.architect.astralSensor.hit();
+          }
         }
-        if (hitMirror && closest.normal) {
-          const normal = closest.normal.clone().transformDirection(closest.object.matrixWorld).normalize();
+        if (isReflectiveMirror && mirrorMesh && closest.point) {
+          let normal = new Vector3(0, 0, 1);
+          normal.applyQuaternion(mirrorMesh.getWorldQuaternion(new Quaternion())).normalize();
+          if (curDir.dot(normal) > 0) {
+            normal.negate();
+          }
           const dot = curDir.dot(normal);
           curDir = curDir.clone().sub(normal.clone().multiplyScalar(2 * dot)).normalize();
-          curPos = closest.point.clone().add(curDir.clone().multiplyScalar(0.05));
+          curPos = closest.point.clone().add(curDir.clone().multiplyScalar(0.06));
         } else {
           break;
         }
@@ -33712,10 +33767,14 @@ void main() {
     }
     drawLaserSegment(start, end) {
       const geo = new BufferGeometry().setFromPoints([start, end]);
-      const mat = new LineBasicMaterial({ color: 15680580, linewidth: 3 });
-      const line = new Line(geo, mat);
-      this.scene.add(line);
-      this.laserBeams.push(line);
+      const coreMat = new LineBasicMaterial({ color: 16777215, linewidth: 2 });
+      const coreLine = new Line(geo, coreMat);
+      this.scene.add(coreLine);
+      this.laserBeams.push(coreLine);
+      const glowMat = new LineBasicMaterial({ color: 15680580, linewidth: 3, transparent: true, opacity: 0.85 });
+      const glowLine = new Line(geo, glowMat);
+      this.scene.add(glowLine);
+      this.laserBeams.push(glowLine);
     }
     /* ---------------- EVENT LISTENERS ---------------- */
     setupEventListeners() {
@@ -33915,12 +33974,20 @@ void main() {
       const oldX = this.camera.position.x;
       const oldZ = this.camera.position.z;
       this.controls.moveRight(-this.velocity.x * delta);
+      this.controls.moveForward(-this.velocity.z * delta);
+      const targetX = this.camera.position.x;
+      const targetZ = this.camera.position.z;
+      this.camera.position.x = oldX;
+      this.camera.position.z = oldZ;
+      this.camera.position.x = targetX;
       if (this.checkCollisions(this.camera.position.x, oldZ)) {
         this.camera.position.x = oldX;
+        this.velocity.x = 0;
       }
-      this.controls.moveForward(-this.velocity.z * delta);
+      this.camera.position.z = targetZ;
       if (this.checkCollisions(this.camera.position.x, this.camera.position.z)) {
         this.camera.position.z = oldZ;
+        this.velocity.z = 0;
       }
       if (this.antigravityActive) {
         if (this.moveState.ascend) {

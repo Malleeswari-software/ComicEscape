@@ -147,11 +147,13 @@ export class WorldArchitect {
       COMIC_DATA.library.coverImg
     );
 
-    // West Wall with towering bookshelves
+    // West Wall with towering bookshelves and solid perimeter backing wall
     this.createBookshelfRow(-9.5, 0, 1, 18, H, Math.PI / 2);
+    this.createPartitionWall(-10, H / 2, 1, 18, H, Math.PI / 2);
 
-    // East Wall with towering bookshelves
+    // East Wall with towering bookshelves and solid perimeter backing wall
     this.createBookshelfRow(9.5, 0, 1, 18, H, -Math.PI / 2);
+    this.createPartitionWall(10, H / 2, 1, 18, H, -Math.PI / 2);
 
     // Warm candle chandeliers hanging from ceiling
     this.createCandleChandelier(0, 5.2, 2);
@@ -169,8 +171,9 @@ export class WorldArchitect {
     this.createArchiveCabinet(6.5, 0, -7.5);
 
     // Door 1 (Between Library and Observatory) - Completely Enclosed by Solid Stone Partition Walls
-    this.createPartitionWall(-6.2, 3.25, -8, 8.0, 6.5, 0); // Left solid wall
-    this.createPartitionWall(6.2, 3.25, -8, 8.0, 6.5, 0);  // Right solid wall
+    // Partition wall spans from -10 to -2.2 (width 7.8, center -6.1) and +2.2 to +10 (width 7.8, center 6.1)
+    this.createPartitionWall(-6.1, 3.25, -8, 7.8, 6.5, 0); // Left solid wall flush with side walls
+    this.createPartitionWall(6.1, 3.25, -8, 7.8, 6.5, 0);  // Right solid wall flush with side walls
     this.createPartitionWall(0, 5.65, -8, 4.4, 1.7, 0, false); // Top arch lintel (overhead only, no ground collider)
     this.game.doors['door1'] = this.game.createVaultDoor(0, 2.4, -8, 4.4, 4.8, true, "Observatory Portal", 'libraryKey');
   }
@@ -423,10 +426,11 @@ export class WorldArchitect {
     const H = 6.5;
     const Z_CENTER = -20;
 
-    // Circular/hexagonal walls with comic and star charts
+    // West and East walls seamlessly connect Room 1 partition (Z = -8) to Room 2 North partition (Z = -30)
+    // Wall length is 22, centered at Z = -19 (spanning exactly from Z = -8 to Z = -30)
     // West Wall with Comic 2: "The Last Night of the Lost Constellation"
     this.game.createComicWall(
-      -10, H / 2, Z_CENTER, 20, H, Math.PI / 2,
+      -10, H / 2, -19, 22, H, Math.PI / 2,
       "The Last Night of the Lost Constellation",
       COMIC_DATA.observatory.panels,
       COMIC_DATA.observatory.uvClue,
@@ -434,7 +438,7 @@ export class WorldArchitect {
     );
 
     // East Wall with star chart panels
-    this.createStarChartWall(10, H / 2, Z_CENTER, 20, H, -Math.PI / 2);
+    this.createStarChartWall(10, H / 2, -19, 22, H, -Math.PI / 2);
 
     // Glass Domed Ceiling with Moving Night Sky
     this.createObservatoryGlassDome(0, 6.2, Z_CENTER);
@@ -453,10 +457,11 @@ export class WorldArchitect {
     this.astralSensor = this.createAstralGlyphSensor(6.0, 2.2, Z_CENTER - 9.6);
 
     // Door 2 (Between Observatory and Temple) - Completely Enclosed by Solid Stone Partition Walls
-    this.createPartitionWall(-6.2, 3.25, Z_CENTER - 10, 8.0, 6.5, 0); // Left solid wall
-    this.createPartitionWall(6.2, 3.25, Z_CENTER - 10, 8.0, 6.5, 0);  // Right solid wall
-    this.createPartitionWall(0, 5.65, Z_CENTER - 10, 4.4, 1.7, 0, false); // Top arch lintel (overhead only, no ground collider)
-    this.game.doors['door2'] = this.game.createVaultDoor(0, 2.4, Z_CENTER - 10, 4.4, 4.8, true, "Temple Gateway", 'observatoryKey');
+    // Partition wall spans from -10 to -2.2 (width 7.8, center -6.1) and +2.2 to +10 (width 7.8, center 6.1) at Z = -30
+    this.createPartitionWall(-6.1, 3.25, -30, 7.8, 6.5, 0); // Left solid wall flush with side walls
+    this.createPartitionWall(6.1, 3.25, -30, 7.8, 6.5, 0);  // Right solid wall flush with side walls
+    this.createPartitionWall(0, 5.65, -30, 4.4, 1.7, 0, false); // Top arch lintel (overhead only, no ground collider)
+    this.game.doors['door2'] = this.game.createVaultDoor(0, 2.4, -30, 4.4, 4.8, true, "Temple Gateway", 'observatoryKey');
   }
 
   createStarChartWall(x, y, z, width, height, rotY) {
@@ -590,27 +595,46 @@ export class WorldArchitect {
     const group = new THREE.Group();
     group.position.set(x, y, z);
 
-    // Outer Runic Frame
+    // Outer Runic Frame (Enlarged ~35% for clear visibility and aiming)
     const frameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.2 });
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 0.2), frameMat);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.9, 0.25), frameMat);
     group.add(frame);
 
-    // Glowing Star Glyph Center
+    // Golden Runic Ring Border
+    const ringMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      emissive: 0xf59e0b,
+      emissiveIntensity: 0.6,
+      metalness: 0.95
+    });
+    const runeRing = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.06, 16, 32), ringMat);
+    runeRing.position.z = 0.14;
+    group.add(runeRing);
+
+    // Glowing Star Glyph Center Receptor (Enlarged from 0.4 to 0.55 radius)
     const eyeMat = new THREE.MeshStandardMaterial({
       color: 0xef4444,
       emissive: 0xef4444,
-      emissiveIntensity: 0.8
+      emissiveIntensity: 1.0,
+      roughness: 0.2,
+      metalness: 0.3
     });
-    const eye = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.15, 24), eyeMat);
+    const eye = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.2, 24), eyeMat);
     eye.rotation.x = Math.PI / 2;
-    eye.position.z = 0.12;
+    eye.position.z = 0.15;
     group.add(eye);
+
+    // Beacon Glow PointLight to make the target stand out in the dark observatory
+    const targetGlow = new THREE.PointLight(0xef4444, 2.0, 8, 1.5);
+    targetGlow.position.set(0, 0, 0.4);
+    group.add(targetGlow);
 
     this.scene.add(group);
 
     return {
       group,
       eyeMat,
+      targetGlow,
       position: new THREE.Vector3(x, y, z),
       activated: false,
       charge: 0,
@@ -618,10 +642,18 @@ export class WorldArchitect {
         if (this.astralSensor.activated) return;
         this.astralSensor.charge += 0.08;
         this.game.sound.playLaserBounce();
+        // Reactive flash on hit
+        this.astralSensor.eyeMat.emissiveIntensity = 1.8;
+        setTimeout(() => {
+          if (!this.astralSensor.activated) this.astralSensor.eyeMat.emissiveIntensity = 1.0;
+        }, 120);
+
         if (this.astralSensor.charge >= 1.0) {
           this.astralSensor.activated = true;
           this.astralSensor.eyeMat.color.setHex(0x38bdf8);
           this.astralSensor.eyeMat.emissive.setHex(0x38bdf8);
+          this.astralSensor.eyeMat.emissiveIntensity = 1.2;
+          this.astralSensor.targetGlow.color.setHex(0x38bdf8);
           this.game.puzzleManager.solveObservatoryPuzzle();
         }
       }
@@ -634,8 +666,9 @@ export class WorldArchitect {
     const Z_CENTER = -44;
 
     // West Wall with Comic 3: "The Final Shadow of the Sun and Moon"
+    // Spans seamlessly from Door 2 (Z = -30) to Door 3 (Z = -48): length 18, centered at Z = -39
     this.game.createComicWall(
-      -12, H / 2, Z_CENTER, 24, H, Math.PI / 2,
+      -10, H / 2, -39, 18, H, Math.PI / 2,
       "The Final Shadow of the Sun and Moon",
       COMIC_DATA.temple.panels,
       COMIC_DATA.temple.uvClue,
@@ -643,7 +676,7 @@ export class WorldArchitect {
     );
 
     // East Wall with ancient carved hieroglyphs
-    this.createHieroglyphWall(12, H / 2, Z_CENTER, 24, H, -Math.PI / 2);
+    this.createHieroglyphWall(10, H / 2, -39, 18, H, -Math.PI / 2);
 
     // Colossal Guardian Statues casting long shadows along flanking columns (leaving center walkway clear)
     this.createGuardianStatue(-6, 0, Z_CENTER + 6, Math.PI / 4);
@@ -658,11 +691,12 @@ export class WorldArchitect {
     // Central Ceremonial Altar with Solar-Lunar Glyph
     this.createCeremonialAltar(0, 0, Z_CENTER - 1);
 
-    // Door 3 (Between Temple and Master Portal Sanctuary) - Solid Stone Partition Walls
-    this.createPartitionWall(-7.1, 3.5, -48, 9.8, 7.0, 0); // Left solid wall
-    this.createPartitionWall(7.1, 3.5, -48, 9.8, 7.0, 0);  // Right solid wall
-    this.createPartitionWall(0, 5.9, -48, 4.4, 2.2, 0, false); // Top arch lintel (overhead only, no ground collider)
-    this.game.doors['door3'] = this.game.createVaultDoor(0, 2.4, -48, 4.4, 4.8, true, "Sanctuary Gateway", 'templeKey');
+    // Door 3 (Between Temple and Master Portal Sanctuary) - Solid Stone Partition Walls with comfortable wide passage (6.0m)
+    // Side walls are at x = ±10.0; Door opening is from x = -3.0 to +3.0; Left/right partition walls span x = ±3.0 to ±10.0 (width 7.0, center ±6.5)
+    this.createPartitionWall(-6.5, 3.5, -48, 7.0, 7.0, 0); // Left solid wall flush with side wall
+    this.createPartitionWall(6.5, 3.5, -48, 7.0, 7.0, 0);  // Right solid wall flush with side wall
+    this.createPartitionWall(0, 5.9, -48, 6.0, 2.2, 0, false); // Top arch lintel (overhead only, no ground collider)
+    this.game.doors['door3'] = this.game.createVaultDoor(0, 2.4, -48, 6.0, 4.8, true, "Sanctuary Gateway", 'templeKey');
   }
 
   createHieroglyphWall(x, y, z, width, height, rotY) {
